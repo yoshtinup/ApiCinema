@@ -8,6 +8,7 @@ import { clientRouter } from "./v1/Registro/Infrestructura/interfaces/http/route
 import { ProductoRouter } from "./v1/Producto/Infrestructura/interfaces/http/router/ProductoRouter.js";
 import { clientVerific } from "./v1/Registro/Infrestructura/interfaces/http/router/VericadorRouter.js";
 import { CarritoRouter } from "./v1/Carrito/Infrestructura/interfaces/http/router/CarritoRouter.js";
+import { PaymentRouter } from "./v1/Services/Infrestructura/interfaces/http/router/PaymentRouter.js";
 const app = express();
 
 app.use(express.static('public'));
@@ -27,8 +28,10 @@ app.use("/api/v1", ProductoRouter);
 
 // Endpoint para servir el archivo HTML
 app.use("/api/v1", clientVerific);
-//Ruta de carrito
+//Ruta de carrito"
 app.use("/api/v1", CarritoRouter);
+// Ruta de mercado pago
+app.use("/api/v1", PaymentRouter)
 
 app.get('/mostrar-html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
