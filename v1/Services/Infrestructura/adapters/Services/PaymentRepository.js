@@ -23,7 +23,7 @@ export class PaymentRepository extends IExteriorService {
             }
           })
           return {
-            init_point: response.init_point
+            init_point: response.sandbox_init_point
           };
         } catch (error) {
           throw new Error(`Error creando preferencia de pago: ${error.message}`);

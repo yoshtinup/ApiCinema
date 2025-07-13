@@ -5,7 +5,7 @@ import { db } from '../../../../../database/mysql.js';
 export class ProductoRepository extends IProductoRepository {
   // Método para crear un nuevo cliente en la base de datos
   async deleteProductoById(id) {
-    const sql = 'DELETE FROM producto WHERE id = ?';
+    const sql = 'DELETE FROM productos WHERE id = ?';
     const params = [id];
     try {
       const [result] = await db.query(sql, params);
