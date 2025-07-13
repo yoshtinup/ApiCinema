@@ -9,6 +9,8 @@ import { ProductoRouter } from "./v1/Producto/Infrestructura/interfaces/http/rou
 import { clientVerific } from "./v1/Registro/Infrestructura/interfaces/http/router/VericadorRouter.js";
 import { CarritoRouter } from "./v1/Carrito/Infrestructura/interfaces/http/router/CarritoRouter.js";
 import { PaymentRouter } from "./v1/Services/Infrestructura/interfaces/http/router/PaymentRouter.js";
+import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/EstadoRouter.js";
+import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
 const app = express();
 
 app.use(express.static('public'));
@@ -31,7 +33,11 @@ app.use("/api/v1", clientVerific);
 //Ruta de carrito"
 app.use("/api/v1", CarritoRouter);
 // Ruta de mercado pago
-app.use("/api/v1", PaymentRouter)
+app.use("/api/v1", PaymentRouter);
+// ruta del estado de pago
+app.use("/api/v1", EstadoRouter);
+// ruta de pagos
+app.use("/api/v1" , PagoRouter)
 
 app.get('/mostrar-html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -15,7 +15,7 @@ export class PaymentRepository extends IExteriorService {
             body: {
               items: [item],
               back_urls: {
-                success: "https://www.tu-sitio.com/success",
+                success: "https://d4803062c935.ngrok-free.app/home",
                 failure: "https://localhost:5173/carrito",
                 pending: "https://www.tu-sitio.com/pending"
               },
