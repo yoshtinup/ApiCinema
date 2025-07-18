@@ -11,6 +11,7 @@ import { CarritoRouter } from "./v1/Carrito/Infrestructura/interfaces/http/route
 import { PaymentRouter } from "./v1/Services/Infrestructura/interfaces/http/router/PaymentRouter.js";
 import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/EstadoRouter.js";
 import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
+import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dispenserRoutes.js";
 const app = express();
 
 app.use(express.static('public'));
@@ -38,7 +39,7 @@ app.use("/api/v1", PaymentRouter);
 app.use("/api/v1", EstadoRouter);
 // ruta de pagos
 app.use("/api/v1" , PagoRouter)
-
+app.use ("/api/v1", DispenserRouter);
 app.get('/mostrar-html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });

@@ -1,6 +1,6 @@
 
 export class RegistroCliente {
-  constructor(id, nombre = '', apellido = '', telefono, gmail, codigo='', usuario= '') {
+  constructor(id, nombre = '', apellido = '', telefono, gmail, codigo='', usuario= '', id_role_fk) {
     this.id = id ?? null;
     this.nombre = nombre ? this.validateString(nombre) : '';
     this.apellido = apellido ? this.validateString(apellido) : '';
@@ -8,6 +8,7 @@ export class RegistroCliente {
     this.gmail = this.validateEmail(gmail);
     this.codigo = codigo ; 
     this.usuario = usuario;
+    this.id_role_fk = id_role_fk ?? null; // Asignación del id_role_fk, puede ser null
   }
 
 

@@ -23,9 +23,12 @@ export class VerifyLogin {
     return {
       id: loginData.id,
       gmail: loginData.gmail,
-      tipo: loginData.tipo,
-      nombre: loginData.nombre, // Asegurarse de que el nombre esté incluido
-      // ⚠️ No incluir password por seguridad
+      nombre: loginData.nombre,
+      apellido: loginData.apellido,
+      telefono: loginData.telefono,
+      usuario: loginData.usuario,
+      id_role_fk: loginData.id_role_fk
+      // No incluir password/codigo
     };
   }
 }

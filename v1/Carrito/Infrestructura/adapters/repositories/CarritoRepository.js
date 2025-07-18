@@ -93,6 +93,44 @@ export class CarritoRepository extends IProductoRepository {
     }
   }
 
+  // Nuevo método para obtener los elementos del carrito por ID de usuario
+  async getCartItemsByUserId(userId) {
+    const sql = "SELECT * FROM carrito WHERE iduser = ?";
+    const params = [userId];
+    try {
+      const [results] = await db.query(sql, params);
+      return results;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving cart items by user ID');
+    }
+  }
+
+  // Nuevo método para obtener detalles del producto
+  async getProductDetails(productId) {
+    const sql = "SELECT * FROM productos WHERE id = ?";
+    const params = [productId];
+    try {
+      const [results] = await db.query(sql, params);
+      return results[0];
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving product details');
+    }
+  }
+
+  // Método opcional para limpiar el carrito del usuario después del pago
+  async clearUserCart(userId) {
+    const sql = "DELETE FROM carrito WHERE iduser = ?";
+    const params = [userId];
+    try {
+      const [result] = await db.query(sql, params);
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error clearing user cart');
+    }
+  }
 }
 
 

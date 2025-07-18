@@ -20,7 +20,7 @@ export class RegistroController {
   // Método para manejar la solicitud HTTP POST /clients
   async createClient(req, res) {
     try {
-      const { nombre, apellido, telefono, gmail, codigo, usuario } = req.body;
+      const { nombre, apellido, telefono, gmail, codigo, usuario, id_role_fk} = req.body;
 
       // Crear los datos del cliente y ejecutar el caso de uso para crear al cliente
       const clientData = {
@@ -29,7 +29,8 @@ export class RegistroController {
         telefono: telefono ?? '',
         gmail: gmail ?? '',
         codigo: codigo ?? '',
-        usuario: usuario ?? ''
+        usuario: usuario ?? '',
+        id_role_fk: id_role_fk ?? null
       };
 
       const newClient = await this.createClientUseCase.execute(clientData);
@@ -77,6 +78,9 @@ export class RegistroController {
 
     res.status(200).json({
       message: 'Login successful',
+
+      userId: verifiedUser.id,
+
       token
     });
     } catch (error) {

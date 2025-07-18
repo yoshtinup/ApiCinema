@@ -1,17 +1,28 @@
 
 import express from 'express';
-import { Controller } from '../../../adapters/controllers/Controller.js';
-import { Repository } from '../../../adapters/repositories/Repository.js';
+import { PagoController } from '../../../adapters/Controllers/PagoController.js';
+import { PagoRepository } from '../../../adapters/repositories/PagoRepository.js';
+import { CarritoRepository } from '../../../../../Carrito/Infrestructura/adapters/repositories/CarritoRepository.js';
 
 export const PagoRouter = express.Router();
 
-const estadoRepository = new Repository();
-const estadoController = new Controller(estadoRepository);
+// Initialize repositories
+const pagoRepository = new PagoRepository();
+const carritoRepository = new CarritoRepository();
 
-// Definir la ruta POST /clients
+// Initialize controller with both repositories
+const pagoController = new PagoController(pagoRepository, carritoRepository);
 
-PagoRouter.get('/pago', (req, res) => estadoController.getAllProducto(req, res));
-PagoRouter.get("/pago/:id", (req, res) => estadoController.getProductoById(req, res));
-PagoRouter.post("/pago",(req, res) => estadoController.createProducto(req, res));
-PagoRouter.put("/pago/:id",(req, res) => estadoController.updateProductoById(req, res));
-PagoRouter.delete("/pago/:id" ,(req, res) => estadoController.deleteProductoById(req, res));
+// Standard CRUD routes
+PagoRouter.get('/pago', (req, res) => pagoController.getAllProducto(req, res));
+PagoRouter.get("/pago/:id", (req, res) => pagoController.getProductoById(req, res));
+PagoRouter.get("/pago/user/:iduser", (req, res) => pagoController.getOrdersByUserId(req, res))
+PagoRouter.post("/pago", (req, res) => pagoController.createPago(req, res));
+PagoRouter.put("/pago/:id", (req, res) => pagoController.updateProductoById(req, res));
+PagoRouter.delete("/pago/:id", (req, res) => pagoController.deleteProductoById(req, res));
+
+// New endpoint for completing payment and transferring cart data to orders
+PagoRouter.post("/pago/complete", (req, res) => pagoController.completePayment(req, res));
+
+// Endpoint para obtener productos por arreglo de IDs
+PagoRouter.post("/pago/productos/by-ids", (req, res) => pagoController.getProductosByIdsController(req, res));

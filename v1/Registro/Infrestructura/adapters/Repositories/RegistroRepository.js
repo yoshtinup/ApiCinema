@@ -2,6 +2,7 @@
 
 import { IRegistroRepository } from '../../../domain/ports/IRegistroRepository.js';
 import { db } from '../../../../../database/mysql.js';
+import bcrypt from 'bcryptjs';
 
 export class RegistroRepository extends IRegistroRepository {
   // Método para crear un nuevo cliente en la base de datos
@@ -17,18 +18,20 @@ export class RegistroRepository extends IRegistroRepository {
   }
 
   async createNewClient(client) {
-    const sql = "INSERT INTO usuario(nombre, apellido, telefono, gmail, codigo, usuario, ) VALUES (?, ?, ?, ?, ?, ?)";
-   
+    // Encriptar la contraseña antes de guardar
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(client.codigo, salt);
+    const sql = "INSERT INTO usuario(nombre, apellido, telefono, gmail, codigo, usuario, id_role_fk) VALUES (?, ?, ?, ?, ?, ?, ?)";
     // Convertir valores undefined a null
     const params = [
       client.nombre ?? null,
       client.apellido ?? null,
       client.telefono ?? null,
       client.gmail ?? null,
-      client.codigo ?? null,
-      client.usuario ?? null
+      hashedPassword,
+      client.usuario ?? null,
+      client.id_role_fk ?? null
     ];
-  
     try {
       const [resultado] = await db.query(sql, params);
       return {
@@ -37,8 +40,9 @@ export class RegistroRepository extends IRegistroRepository {
         apellido: client.apellido,
         telefono: client.telefono,
         gmail: client.gmail,
-        codigo: client.codigo,
+        codigo: undefined, // No devolver el hash
         usuario: client.usuario,
+        id_role_fk: client.id_role_fk
       };
     } catch (error) {
       console.error('Database Error:', error);
@@ -46,14 +50,23 @@ export class RegistroRepository extends IRegistroRepository {
     }
   }
   async findLoginByCredentials(gmail, password) {
-    const sql = "SELECT * FROM usuarios WHERE gmail = ? AND password = ?";
-    const params = [gmail, password];
+    // Buscar solo por gmail
+    const sql = "SELECT * FROM usuario WHERE gmail = ?";
+    const params = [gmail];
     try {
       const [result] = await db.query(sql, params);
       if (result.length === 0) {
         return null; // Usuario no encontrado
       }
-      return result[0]; // Devolver el primer resultado (el usuario encontrado)
+      const user = result[0];
+      // Comparar la contraseña encriptada
+      const isMatch = await bcrypt.compare(password, user.codigo);
+      if (!isMatch) {
+        return null; // Contraseña incorrecta
+      }
+      // No devolver el hash
+      user.codigo = undefined;
+      return user;
     } catch (error) {
       console.error('Database Error:', error);
       throw new Error('Error finding login information');
