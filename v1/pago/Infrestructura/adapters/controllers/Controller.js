@@ -3,6 +3,7 @@ import { GetAll } from "../../../Aplicativo/GetAll.js";
 import { Create} from "../../../Aplicativo/Create.js";
 import { UpdateById } from "../../../Aplicativo/UpdateById.js";
 import { DeleteById } from "../../../Aplicativo/DeleteById.js";
+import { GetOrdersByNFC } from "../../../Aplicativo/GetOrdersByNFC.js";
 
 
 export class Controller {
@@ -12,6 +13,7 @@ export class Controller {
     this.createBoletoUseCase = new Create(productoRepository);
     this.updateHistoryByIdUseCase = new UpdateById(productoRepository);
     this.deleteHistoryByIdUseCase = new DeleteById(productoRepository);
+    this.getOrdersByNFCUseCase = new GetOrdersByNFC(productoRepository);
   }
   // Método para manejar la solicitud HTTP POST /clients
   async deleteProductoById(req, res) {
@@ -96,6 +98,36 @@ export class Controller {
     try {
       const history = await this.getAllHistoryUseCase.execute();
       res.status(200).json(history);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getOrdersByNFC(req, res) {
+    try {
+      const { nfc } = req.params;
+      
+      // Validar que el NFC esté presente
+      if (!nfc) {
+        return res.status(400).json({ message: 'NFC parameter is required' });
+      }
+
+      // Ejecutar el caso de uso para obtener las órdenes por NFC
+      const orders = await this.getOrdersByNFCUseCase.execute(nfc);
+      
+      // Si no se encuentran órdenes, devolver un array vacío con mensaje informativo
+      if (!orders || orders.length === 0) {
+        return res.status(200).json({ 
+          message: 'No orders found for this NFC', 
+          orders: [] 
+        });
+      }
+
+      // Devolver las órdenes encontradas
+      res.status(200).json({
+        message: `Found ${orders.length} order(s) for NFC: ${nfc}`,
+        orders: orders
+      });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }

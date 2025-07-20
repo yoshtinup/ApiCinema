@@ -15,4 +15,7 @@ export class IProductoRepository {
     deleteProductoById(id){
         throw new Error('Metodo de mostrar History no se implemento correctamente');
     }
+    getOrdersByNFC(nfc){
+        throw new Error('Metodo de obtener ordenes por NFC no se implemento correctamente');
+    }
   }

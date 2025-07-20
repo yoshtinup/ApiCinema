@@ -21,8 +21,8 @@ export class RegistroRepository extends IRegistroRepository {
     // Encriptar la contraseña antes de guardar
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(client.codigo, salt);
-    const sql = "INSERT INTO usuario(nombre, apellido, telefono, gmail, codigo, usuario, id_role_fk) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    // Convertir valores undefined a null
+    const sql = "INSERT INTO usuario(nombre, apellido, telefono, gmail, codigo, usuario, id_role_fk, nfc) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    // Convertir valores undefined a null, excepto id_role_fk que debe ser 1 por defecto
     const params = [
       client.nombre ?? null,
       client.apellido ?? null,
@@ -30,7 +30,8 @@ export class RegistroRepository extends IRegistroRepository {
       client.gmail ?? null,
       hashedPassword,
       client.usuario ?? null,
-      client.id_role_fk ?? null
+      client.id_role_fk ?? 1, // Por defecto role 1 (usuario normal)
+      client.nfc ?? null
     ];
     try {
       const [resultado] = await db.query(sql, params);
@@ -42,7 +43,8 @@ export class RegistroRepository extends IRegistroRepository {
         gmail: client.gmail,
         codigo: undefined, // No devolver el hash
         usuario: client.usuario,
-        id_role_fk: client.id_role_fk
+        id_role_fk: client.id_role_fk ?? 1, // Asegurar que retorne 1 por defecto
+        nfc: client.nfc ?? null
       };
     } catch (error) {
       console.error('Database Error:', error);
@@ -85,30 +87,57 @@ export class RegistroRepository extends IRegistroRepository {
     }
   }
   async updateClientById(id, client) {
-    const sql = "UPDATE usuario SET nombre = ?, apellido = ?, telefono = ?, gmail = ?, usuario = ? WHERE id = ?";
+    const sql = "UPDATE usuario SET nombre = ?, apellido = ?, telefono = ?, gmail = ?, usuario = ?, nfc = ? WHERE id = ?";
     const params = [
       client.nombre ?? null,
       client.apellido ?? null,
       client.telefono ?? null,
       client.gmail ?? null,
       client.usuario ?? null,
+      client.nfc ?? null,
       id
     ];
-  
+
     try {
       const [result] = await db.query(sql, params);
-  
+
       // Verificar si se actualizó algún registro
       if (result.affectedRows === 0) {
         throw new Error('Client not found');
       }
-  
+
       return result;
     } catch (error) {
       console.error('Database Error:', error);
       throw new Error('Error updating client');
     }
   }
+
+  async updateNFCById(id, nfc) {
+    const sql = "UPDATE usuario SET nfc = ? WHERE id = ?";
+    const params = [nfc, id];
+    try {
+      const [result] = await db.query(sql, params);
+      if (result.affectedRows === 0) {
+        return null;
+      }
+      // Devuelve solo los campos públicos relevantes
+      const user = await this.getClientById(id);
+      if (!user) return null;
+      return {
+        id: user.id,
+        nombre: user.nombre,
+        apellido: user.apellido,
+        id_role_fk: user.id_role_fk,
+        nfc: user.nfc,
+        usuario: user.usuario ?? null
+      };
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error updating NFC');
+    }
+  }
+
   async deleteClientById(id) {
     const sql = 'DELETE FROM usuario WHERE id = ?';
     const params = [id];

@@ -1,10 +1,10 @@
 
 import { GetProductoById } from "../../../Aplicativo/GetProductoById.js";
-
 import { GetAllProducto } from "../../../Aplicativo/GetAllProducto.js";
 import { CreateProducto } from "../../../Aplicativo/CreateProducto.js";
 import { UpdateProductoById } from "../../../Aplicativo/UpdateProductoById.js";
 import { DeleteProductoById } from "../../../Aplicativo/DeleteProductoById.js";
+import { UpdateApartadoById } from "../../../Aplicativo/UpdateApartadoById.js";
 
 export class ProductoController {
   constructor(productoRepository) {
@@ -12,7 +12,8 @@ export class ProductoController {
     this.getAllHistoryUseCase = new GetAllProducto(productoRepository);
     this.createBoletoUseCase = new CreateProducto(productoRepository);
     this.updateHistoryByIdUseCase = new UpdateProductoById(productoRepository);
-    this.deleteHistoryByIdUseCase = new DeleteProductoById(productoRepository); 
+    this.deleteHistoryByIdUseCase = new DeleteProductoById(productoRepository);
+    this.updateApartadoByIdUseCase = new UpdateApartadoById(productoRepository);
   }
   // Método para manejar la solicitud HTTP POST /clients
   async deleteProductoById(req, res) {
@@ -101,6 +102,31 @@ export class ProductoController {
     try {
       const history = await this.getAllHistoryUseCase.execute();
       res.status(200).json(history);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  // Endpoint para actualizar solo el campo no_apartado
+  async updateApartado(req, res) {
+    try {
+      const { id } = req.params;
+      const { no_apartado } = req.body;
+      
+      if (no_apartado === undefined || no_apartado === null) {
+        return res.status(400).json({ message: 'El campo no_apartado es requerido' });
+      }
+      
+      const updatedProduct = await this.updateApartadoByIdUseCase.execute(id, no_apartado);
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: 'Producto not found' });
+      }
+      
+      res.status(200).json({ 
+        message: 'Apartado actualizado correctamente', 
+        producto: updatedProduct 
+      });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }

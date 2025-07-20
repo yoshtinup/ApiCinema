@@ -50,12 +50,22 @@ export class DispenserController {
     }
   }
 
-  async deleteById(req, res) {
+
+  // Endpoint para rellenar inventario del dispensador
+  async refillInventory(req, res) {
     try {
-      await this.deleteDispenserById.execute(req.params.id);
-      res.status(204).send();
+      const { dispenser_id, selectedProductBySection, quantities } = req.body;
+      if (!dispenser_id || !selectedProductBySection || !quantities) {
+        return res.status(400).json({ error: 'Faltan datos requeridos.' });
+      }
+      // Ejecuta la actualización usando el caso de uso existente
+      const result = await this.updateDispenserById.execute(
+        dispenser_id,
+        { selectedProductBySection, quantities }
+      );
+      res.status(200).json({ message: 'Rellenado confirmado.', result });
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      res.status(500).json({ error: err.message });
     }
   }
 }

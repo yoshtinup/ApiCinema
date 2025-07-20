@@ -11,6 +11,7 @@ const router = express.Router();
 
 const dispenserRepository = new DispenserRepository(db);
 
+
 const dispenserController = new DispenserController({
   createDispenser: new CreateDispenser(dispenserRepository),
   getAllDispenser: new GetAllDispenser(dispenserRepository),
@@ -18,6 +19,9 @@ const dispenserController = new DispenserController({
   updateDispenserById: new UpdateDispenserById(dispenserRepository),
   deleteDispenserById: new DeleteDispenserById(dispenserRepository)
 });
+
+// Endpoint para rellenar inventario
+router.post('/dispenser/refill', (req, res) => dispenserController.refillInventory(req, res));
 
 router.post('/dispenser', (req, res) => dispenserController.create(req, res));
 router.get('/dispenser', (req, res) => dispenserController.getAll(req, res));

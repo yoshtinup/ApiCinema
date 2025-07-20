@@ -1,0 +1,1 @@
+ALTER TABLE orders ADD COLUMN nfc VARCHAR(255) NULL AFTER dispenser_id;

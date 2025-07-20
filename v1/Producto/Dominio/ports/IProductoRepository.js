@@ -15,4 +15,7 @@ export class IProductoRepository {
     deleteProductoById(id){
         throw new Error('Metodo de mostrar History no se implemento correctamente');
     }
+    updateApartadoById(id, no_apartado){
+        throw new Error('Metodo de actualizar apartado no se implemento correctamente');
+    }
   }

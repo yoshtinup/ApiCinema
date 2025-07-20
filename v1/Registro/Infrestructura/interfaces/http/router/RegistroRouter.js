@@ -28,6 +28,7 @@ clientRouter.get('/user',auditLogger('Consulta de Clientes'), (req, res) => clie
 clientRouter.post('/loginUser', auditLogger('Inicio de Sesión'), (req, res) => clientController.verifyLogin(req, res));
 clientRouter.get('/user/:id', VerifyToken, auditLogger('Consulta de Cliente por ID'), (req, res) => clientController.getClientById(req, res));
 clientRouter.put('/user/:id', VerifyToken, auditLogger('Actualización de Cliente'), (req, res) => clientController.updateClientById(req, res));
+clientRouter.put('/user/:id/nfc', VerifyToken, auditLogger('Actualización de NFC'), (req, res) => clientController.updateNFC(req, res));
 clientRouter.delete('/user/:id', VerifyToken, auditLogger('Eliminación de Cliente'), (req, res) => clientController.deleteClientById(req, res));
 
 //Aplicar ruta de token de entrada 

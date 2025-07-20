@@ -53,16 +53,31 @@ async createOrder(order) {
     .replace('T', ' ');
 
   // Calculate the correct total from items
-  const subtotal = order.items.reduce((sum, item) => {
-    const itemSubtotal = parseFloat(item.price) * parseInt(item.quantity);
-    return sum + itemSubtotal;
-  }, 0);
+  let subtotal = 0;
+  
+  // Manejar tanto arrays como objetos con apartados
+  if (Array.isArray(order.items)) {
+    // Si es array (formato anterior)
+    subtotal = order.items.reduce((sum, item) => {
+      const itemSubtotal = parseFloat(item.price) * parseInt(item.quantity);
+      return sum + itemSubtotal;
+    }, 0);
+  } else if (typeof order.items === 'object' && order.items !== null) {
+    // Si es objeto con apartados (formato nuevo)
+    for (const key in order.items) {
+      if (order.items.hasOwnProperty(key)) {
+        const item = order.items[key];
+        const itemSubtotal = parseFloat(item.price) * parseInt(item.quantity);
+        subtotal += itemSubtotal;
+      }
+    }
+  }
 
   // Calculate IVA (16% in Mexico)
   const iva = subtotal * 0.16;
   const totalWithIva = subtotal + iva;
 
-  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id, nfc) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
   const params = [
     order.order_id,
     order.user_id,
@@ -70,7 +85,8 @@ async createOrder(order) {
     totalWithIva.toFixed(2),
     order.status,
     formattedDate,
-    order.dispenser_id
+    order.dispenser_id,
+    order.nfc ?? null
   ];
 
   try {
@@ -161,6 +177,270 @@ async createOrder(order) {
     } catch (error) {
       console.error('Database Error:', error);
       throw new Error('Error retrieving orders by user ID');
+    }
+  }
+
+  async getOrdersByNFC(nfc) {
+    const sql = `
+      SELECT o.* 
+      FROM orders o 
+      INNER JOIN usuario u ON o.user_id = u.id 
+      WHERE u.nfc = ? 
+      ORDER BY o.created_at DESC
+    `;
+    const params = [nfc];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      // Parse items JSON for each order
+      return result.map(order => {
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          return order;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+          return order;
+        }
+      });
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving orders by NFC');
+    }
+  }
+
+  async getPendingOrdersByNFC(nfc) {
+    const sql = `
+      SELECT o.* 
+      FROM orders o 
+      INNER JOIN usuario u ON o.user_id = u.id 
+      WHERE u.nfc = ? AND o.status = 'paid'
+      ORDER BY o.created_at ASC
+    `;
+    const params = [nfc];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      // Parse items JSON for each order
+      return result.map(order => {
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          return order;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+          return order;
+        }
+      });
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving pending orders by NFC');
+    }
+  }
+
+  async getOrderByIdAndNFC(orderId, nfc) {
+    const sql = `
+      SELECT o.* 
+      FROM orders o 
+      INNER JOIN usuario u ON o.user_id = u.id 
+      WHERE o.order_id = ? AND u.nfc = ?
+    `;
+    const params = [orderId, nfc];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.length === 0) {
+        return null;
+      }
+
+      const order = result[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        order.items = [];
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving order by ID and NFC');
+    }
+  }
+
+  async markOrderForDispensing(orderId, dispenserId = null) {
+    const sql = `
+      UPDATE orders 
+      SET dispenser_id = ?
+      WHERE order_id = ? AND status = 'paid'
+    `;
+    const params = [dispenserId, orderId];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Order not found or not in correct status for dispensing');
+      }
+
+      // Obtener la orden actualizada
+      const selectSql = 'SELECT * FROM orders WHERE order_id = ?';
+      const [orderResult] = await db.query(selectSql, [orderId]);
+      
+      if (orderResult.length === 0) {
+        throw new Error('Order not found after update');
+      }
+
+      const order = orderResult[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        order.items = [];
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error marking order for dispensing');
+    }
+  }
+
+  async clearPreviousSelectedOrder(nfc) {
+    const sql = 'DELETE FROM nfc_selected_orders WHERE nfc = ?';
+    const params = [nfc];
+    
+    try {
+      await db.query(sql, params);
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error clearing previous selected order');
+    }
+  }
+
+  async markOrderAsSelectedForNFC(orderId, nfc, dispenserId = null) {
+    const sql = `
+      INSERT INTO nfc_selected_orders (nfc, order_id, dispenser_id) 
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE 
+        order_id = VALUES(order_id),
+        dispenser_id = VALUES(dispenser_id),
+        selected_at = CURRENT_TIMESTAMP
+    `;
+    const params = [nfc, orderId, dispenserId];
+    
+    try {
+      await db.query(sql, params);
+      
+      // Obtener la orden que fue seleccionada
+      const orderSql = `
+        SELECT o.* 
+        FROM orders o 
+        WHERE o.order_id = ?
+      `;
+      const [orderResult] = await db.query(orderSql, [orderId]);
+      
+      if (orderResult.length === 0) {
+        throw new Error('Order not found after selection');
+      }
+
+      const order = orderResult[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        order.items = [];
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error marking order as selected for NFC');
+    }
+  }
+
+  async getSelectedOrderByNFC(nfc) {
+    const sql = `
+      SELECT o.*, nso.selected_at, nso.dispenser_id as selected_dispenser_id
+      FROM nfc_selected_orders nso
+      INNER JOIN orders o ON nso.order_id = o.order_id
+      INNER JOIN usuario u ON o.user_id = u.id
+      WHERE nso.nfc = ? AND u.nfc = ? AND o.status = 'paid'
+    `;
+    const params = [nfc, nfc];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.length === 0) {
+        return null;
+      }
+
+      const order = result[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        order.items = [];
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error getting selected order by NFC');
+    }
+  }
+
+  async markOrderAsDispensed(orderId, dispenserId) {
+    const sql = `
+      UPDATE orders 
+      SET status = 'dispensed', dispenser_id = ?
+      WHERE order_id = ? AND status = 'paid'
+    `;
+    const params = [dispenserId, orderId];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Order not found or not in correct status for dispensing');
+      }
+
+      // Obtener la orden actualizada
+      const selectSql = 'SELECT * FROM orders WHERE order_id = ?';
+      const [orderResult] = await db.query(selectSql, [orderId]);
+      
+      if (orderResult.length === 0) {
+        throw new Error('Order not found after dispensing');
+      }
+
+      const order = orderResult[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        order.items = [];
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error marking order as dispensed');
+    }
+  }
+
+  async clearSelectedOrderFromNFC(nfc) {
+    const sql = 'DELETE FROM nfc_selected_orders WHERE nfc = ?';
+    const params = [nfc];
+    
+    try {
+      await db.query(sql, params);
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error clearing selected order from NFC');
     }
   }
 }

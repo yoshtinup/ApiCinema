@@ -1,9 +1,16 @@
+import dotenv from 'dotenv';
+// IMPORTANTE: Cargar variables de entorno ANTES que cualquier otro import
+dotenv.config();
+
 import express from "express";
 import signale from "signale";
 import cors from "cors";
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import passport from 'passport';
+import session from 'express-session';
+import { configureGoogleAuth } from './v1/Auth/Infrestructura/adapters/googleAuth.js';
+import { GoogleAuthRouter } from './v1/Auth/Infrestructura/interfaces/http/router/GoogleAuthRouter.js';
 import { clientRouter } from "./v1/Registro/Infrestructura/interfaces/http/router/RegistroRouter.js";
 import { ProductoRouter } from "./v1/Producto/Infrestructura/interfaces/http/router/ProductoRouter.js";
 import { clientVerific } from "./v1/Registro/Infrestructura/interfaces/http/router/VericadorRouter.js";
@@ -12,40 +19,45 @@ import { PaymentRouter } from "./v1/Services/Infrestructura/interfaces/http/rout
 import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/EstadoRouter.js";
 import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
 import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dispenserRoutes.js";
+import { AnalyticsRouter } from "./v1/Analytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
+
 const app = express();
-
 app.use(express.static('public'));
-
 
 // Configuración del rate limiting
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 app.use(cors());
 app.use(express.json());
 
-// Rutas de la API Usuarios
+// --- Google OAuth2.0 Integration ---
+
+app.use(session({ secret: process.env.JWT_SECRET, resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+configureGoogleAuth();
+
+// Rutas de autenticación Google
+app.use('/api/v1', GoogleAuthRouter);
+
+// --- Tus rutas API existentes ---
 app.use("/api/v1", clientRouter);
 app.use("/api/v1", ProductoRouter);
-
-// Endpoint para servir el archivo HTML
 app.use("/api/v1", clientVerific);
-//Ruta de carrito"
 app.use("/api/v1", CarritoRouter);
-// Ruta de mercado pago
 app.use("/api/v1", PaymentRouter);
-// ruta del estado de pago
 app.use("/api/v1", EstadoRouter);
-// ruta de pagos
-app.use("/api/v1" , PagoRouter)
-app.use ("/api/v1", DispenserRouter);
+app.use("/api/v1", PagoRouter);
+app.use("/api/v1", DispenserRouter);
+app.use("/api/v1/analytics", AnalyticsRouter);
+
 app.get('/mostrar-html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
-    signale.success(`Server online on port ${PORT}`);
+  signale.success(`Server online on port ${PORT}`);
 });
 

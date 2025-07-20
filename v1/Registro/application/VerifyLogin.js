@@ -27,7 +27,8 @@ export class VerifyLogin {
       apellido: loginData.apellido,
       telefono: loginData.telefono,
       usuario: loginData.usuario,
-      id_role_fk: loginData.id_role_fk
+      id_role_fk: loginData.id_role_fk,
+      nfc: loginData.nfc ?? null
       // No incluir password/codigo
     };
   }

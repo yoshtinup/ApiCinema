@@ -93,6 +93,25 @@ export class Repository extends IProductoRepository {
     }
   }
 
+  async getOrdersByNFC(nfc) {
+    const sql = `
+      SELECT o.* 
+      FROM orders o 
+      INNER JOIN usuario u ON o.user_id = u.id 
+      WHERE u.nfc = ? 
+      ORDER BY o.created_at DESC
+    `;
+    const params = [nfc];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      return result;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error retrieving orders by NFC');
+    }
+  }
+
 }
 
 
