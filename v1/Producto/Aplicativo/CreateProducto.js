@@ -13,10 +13,10 @@ export class CreateProducto {
    */
   async execute(productoData) {
     // Extraer los campos de los datos proporcionados
-    const { id, nombre, descripcion, precio, peso, cantidad, categoria, ingreso, imagen } = productoData;
+    const { id, nombre, descripcion, precio, peso, cantidad, categoria, ingreso, imagen, no_apartado} = productoData;
 
     // Crear una instancia de la entidad Boleto con los datos (aplica validaciones si es necesario)
-    const producto = new ProductoUser(id, nombre, descripcion, precio, peso, cantidad, categoria, ingreso, imagen);
+    const producto = new ProductoUser(id, nombre, descripcion, precio, peso, cantidad, categoria, ingreso, imagen, no_apartado);
 
     // Guardar el producto en el repositorio
     return await this.productoRepository.createNewProducto(producto);

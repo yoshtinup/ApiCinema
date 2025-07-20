@@ -82,7 +82,7 @@ export class ProductoRepository extends IProductoRepository {
       producto.categoria ?? null,
       producto.ingreso ?? null,
       producto.imagen ?? null,
-      producto.no_apartado ?? 0
+      producto.no_apartado ?? null
     ];
   
     try {
@@ -100,7 +100,7 @@ export class ProductoRepository extends IProductoRepository {
         categoria: producto.categoria,
         ingreso: producto.ingreso,
         imagen: producto.imagen,
-        no_apartado: producto.no_apartado ?? 0
+        no_apartado: producto.no_apartado
       };
     } catch (error) {
       console.error('Database Error:', error);
