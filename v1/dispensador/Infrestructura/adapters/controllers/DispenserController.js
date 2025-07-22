@@ -16,6 +16,11 @@ export class DispenserController {
   async create(req, res) {
     try {
       const dispenser = await this.createDispenser.execute(req.body);
+       console.log('Datos recibidos:', req.body);
+  console.log('Name:', req.body.name);
+  console.log('Status:', req.body.status);
+  console.log('Items:', req.body.items);
+  
       res.status(201).json(dispenser);
     } catch (err) {
       res.status(400).json({ error: err.message });
