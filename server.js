@@ -20,6 +20,7 @@ import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/
 import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
 import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dispenserRoutes.js";
 import { AnalyticsRouter } from "./v1/Analytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
+import { swaggerUi, specs } from './swagger.js';
 
 const app = express();
 app.use(express.static('public'));
@@ -51,6 +52,13 @@ app.use("/api/v1", EstadoRouter);
 app.use("/api/v1", PagoRouter);
 app.use("/api/v1", DispenserRouter);
 app.use("/api/v1/analytics", AnalyticsRouter);
+
+// --- Swagger Documentation ---
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "ApiCinema - Dispensador API Documentation"
+}));
 
 app.get('/mostrar-html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
