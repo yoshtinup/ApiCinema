@@ -15,7 +15,8 @@ export function configureGoogleAuth() {
   passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
-    callbackURL: process.env.REDIRECT_URI
+    callbackURL: process.env.REDIRECT_URI,
+    scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       console.log('Google profile received:', {
