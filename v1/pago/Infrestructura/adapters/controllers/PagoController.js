@@ -8,6 +8,7 @@ import { GetPendingOrdersByNFC } from '../../../Aplicativo/GetPendingOrdersByNFC
 import { SelectOrderForDispensing } from '../../../Aplicativo/SelectOrderForDispensing.js';
 import { GetReadyOrderByNFC } from '../../../Aplicativo/GetReadyOrderByNFC.js';
 import { DispenseOrderByNFC } from '../../../Aplicativo/DispenseOrderByNFC.js';
+import { UpdateOrderStatusByNFC } from '../../../Aplicativo/UpdateOrderStatusByNFC.js';
 
 export class PagoController {
   constructor(pagoRepository, carritoRepository) {
@@ -20,11 +21,7 @@ export class PagoController {
     this.selectOrderForDispensingUseCase = new SelectOrderForDispensing(pagoRepository);
     this.getReadyOrderByNFCUseCase = new GetReadyOrderByNFC(pagoRepository);
     this.dispenseOrderByNFCUseCase = new DispenseOrderByNFC(pagoRepository);
-  /**
-   * Devuelve productos actualizados desde la BD por arreglo de IDs
-   * @param {Object} req - La solicitud HTTP.
-   * @param {Object} res - La respuesta HTTP.
-   */
+    this.updateOrderStatusByNFCUseCase = new UpdateOrderStatusByNFC(pagoRepository);
   }
 
   /**
@@ -297,6 +294,44 @@ export class PagoController {
       }
       
       if (error.message.includes('cannot be dispensed') || error.message.includes('status')) {
+        return res.status(400).json({ error: error.message });
+      }
+      
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Actualiza el status de una orden por NFC
+   * @param {Object} req - La solicitud HTTP.
+   * @param {Object} res - La respuesta HTTP.
+   */
+  async updateOrderStatusByNFC(req, res) {
+    try {
+      const { nfc } = req.params;
+      const { status } = req.body;
+
+      if (!nfc) {
+        return res.status(400).json({ error: 'NFC es requerido' });
+      }
+
+      if (!status) {
+        return res.status(400).json({ error: 'Status es requerido en el body' });
+      }
+
+      const result = await this.updateOrderStatusByNFCUseCase.execute(nfc, status);
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error updating order status by NFC:', error);
+      
+      if (error.message.includes('No se encontró ninguna orden')) {
+        return res.status(404).json({ error: error.message });
+      }
+      
+      if (error.message.includes('Status inválido') || 
+          error.message.includes('Transición de estado no válida') ||
+          error.message.includes('es requerido')) {
         return res.status(400).json({ error: error.message });
       }
       
