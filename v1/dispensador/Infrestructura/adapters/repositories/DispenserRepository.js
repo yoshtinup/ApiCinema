@@ -14,13 +14,24 @@ export class DispenserRepository extends IDispenserRepository {
 
     const sql = `INSERT INTO dispensador (dispenser_id, location, status, products, last_maintenance, error_count)
       VALUES (?, ?, ?, ?, ?, ?)`;
+    
+    // Validar y formatear last_maintenance
+    let formattedLastMaintenance;
+    if (dispenser.last_maintenance) {
+      // Si viene con formato ISO, convertir a formato MySQL
+      formattedLastMaintenance = dispenser.last_maintenance.replace('T', ' ').replace('Z', '');
+    } else {
+      // Si no viene, usar fecha actual
+      formattedLastMaintenance = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    }
+    
     const params = [
       dispenser.dispenser_id,
       dispenser.location,
       dispenser.status,
       JSON.stringify(products),
-      dispenser.last_maintenance.replace('T', ' ').replace('Z', ''),
-      dispenser.error_count
+      formattedLastMaintenance,
+      dispenser.error_count || 0
     ];
     try {
       const [result] = await db.query(sql, params);
@@ -119,13 +130,23 @@ export class DispenserRepository extends IDispenserRepository {
       }
     } else {
       // Actualización normal
+      // Validar y formatear last_maintenance
+      let formattedLastMaintenance;
+      if (dispenser.last_maintenance) {
+        // Si viene con formato ISO, convertir a formato MySQL
+        formattedLastMaintenance = dispenser.last_maintenance.replace('T', ' ').replace('Z', '');
+      } else {
+        // Si no viene, usar fecha actual
+        formattedLastMaintenance = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      }
+      
       const sql = `UPDATE dispensador SET location = ?, status = ?, products = ?, last_maintenance = ?, error_count = ? WHERE dispenser_id = ?`;
       const params = [
         dispenser.location,
         dispenser.status,
         JSON.stringify(dispenser.products),
-        dispenser.last_maintenance.replace('T', ' ').replace('Z', ''),
-        dispenser.error_count,
+        formattedLastMaintenance,
+        dispenser.error_count || 0,
         id
       ];
       try {
