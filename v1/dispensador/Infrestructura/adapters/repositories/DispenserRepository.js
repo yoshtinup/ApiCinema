@@ -33,15 +33,26 @@ export class DispenserRepository extends IDispenserRepository {
       formattedLastMaintenance,
       dispenser.error_count || 0
     ];
+    
+    console.log('💾 DispenserRepository - SQL:', sql);
+    console.log('💾 DispenserRepository - Params:', params);
     try {
       const [result] = await db.query(sql, params);
-      return {
+      console.log('✅ DispenserRepository - Query result:', result);
+      
+      const createdDispenser = {
         id: result.insertId,
         ...dispenser,
         products
       };
+      
+      console.log('✅ DispenserRepository - Created dispenser:', createdDispenser);
+      
+      return createdDispenser;
     } catch (error) {
-      console.error('Database Error:', error);
+      console.error('❌ DispenserRepository - Database Error:', error);
+      console.error('❌ DispenserRepository - SQL that failed:', sql);
+      console.error('❌ DispenserRepository - Params that failed:', params);
       throw new Error('Error creating new Dispenser');
     }
   }

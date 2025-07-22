@@ -15,16 +15,42 @@ export class DispenserController {
 
   async create(req, res) {
     try {
-      const dispenser = await this.createDispenser.execute(req.body);
-       console.log('Datos recibidos:', req.body);
-  console.log('Name:', req.body.name);
-  console.log('Status:', req.body.status);
-  console.log('Items:', req.body.items);
-  
+      console.log('🔍 Datos originales del frontend:', req.body);
+      
+      // Mapear datos del frontend al formato del backend
+      const mappedData = this._mapFrontendToBackend(req.body);
+      
+      console.log('🔄 Datos mapeados para el backend:', mappedData);
+      
+      const dispenser = await this.createDispenser.execute(mappedData);
       res.status(201).json(dispenser);
     } catch (err) {
+      console.error('❌ Error creando dispensador:', err.message);
       res.status(400).json({ error: err.message });
     }
+  }
+
+  // Mapear datos del frontend al formato esperado por el backend
+  _mapFrontendToBackend(frontendData) {
+    // Mapear status del frontend al backend
+    const statusMap = {
+      'active': 'online',
+      'inactive': 'offline',
+      'maintenance': 'maintenance',
+      'online': 'online',
+      'offline': 'offline'
+    };
+
+    return {
+      dispenser_id: frontendData.name || frontendData.dispenser_id, // Frontend envía 'name'
+      location: frontendData.location,
+      status: statusMap[frontendData.status] || 'online', // Mapear status
+      products: frontendData.items || frontendData.products || [], // Frontend envía 'items'
+      last_maintenance: frontendData.last_maintenance,
+      error_count: frontendData.error_count || 0,
+      // Pasar datos adicionales si existen
+      apartados: frontendData.apartados
+    };
   }
 
   async getAll(req, res) {
