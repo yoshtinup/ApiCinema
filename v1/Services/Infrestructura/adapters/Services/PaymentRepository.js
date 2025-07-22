@@ -15,9 +15,9 @@ export class PaymentRepository extends IExteriorService {
         body: {
           items: [item],
           back_urls: {
-            success: "https://localhost:5173/payment-success", 
-            failure: "https://localhost:5173/carrito",
-            pending: "https://localhost:5173/payment-pending"
+            success: "https://cinesnacks.acstree.xyz/payment-success", 
+            failure: "https://cinesnacks.acstree.xyz/carrito",
+            pending: "https://cinesnacks.acstree.xyz/payment-pending"
           },
           auto_return: "approved"
         }
