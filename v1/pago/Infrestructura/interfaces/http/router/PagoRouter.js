@@ -39,6 +39,66 @@ PagoRouter.post("/pago/complete", authMiddleware, (req, res) => pagoController.c
 PagoRouter.post("/pago/productos/by-ids", (req, res) => pagoController.getProductosByIdsController(req, res));
 
 // Endpoint para actualizar el status de una orden por NFC
+// Endpoint para diagnosticar el estado de las órdenes de un NFC
+PagoRouter.get("/pago/nfc/:nfc/diagnose", async (req, res) => {
+  try {
+    const { nfc } = req.params;
+    
+    if (!nfc) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'El NFC es requerido' 
+      });
+    }
+
+    // Importar repositorio
+    const { PagoRepository } = await import('../../../adapters/repositories/PagoRepository.js');
+    const pagoRepo = new PagoRepository();
+
+    // Buscar en nfc_selected_orders
+    const sqlNfcSelected = `
+      SELECT nso.*, o.status, o.created_at 
+      FROM nfc_selected_orders nso 
+      LEFT JOIN orders o ON nso.order_id = o.order_id 
+      WHERE nso.nfc = ?
+    `;
+    const [nfcSelectedOrders] = await pagoRepo.getDb().query(sqlNfcSelected, [nfc]);
+
+    // Buscar en orders
+    const sqlOrders = `
+      SELECT o.order_id, o.status, o.created_at, o.nfc as order_nfc, u.nfc as user_nfc 
+      FROM orders o 
+      LEFT JOIN usuario u ON o.user_id = u.id 
+      WHERE o.nfc = ? OR u.nfc = ? 
+      ORDER BY o.created_at DESC
+    `;
+    const [orders] = await pagoRepo.getDb().query(sqlOrders, [nfc, nfc]);
+
+    // Verificar si hay órdenes activas
+    const hasActive = await pagoRepo.hasActiveOrderByNFC(nfc);
+
+    res.status(200).json({
+      success: true,
+      nfc,
+      diagnostics: {
+        nfc_selected_orders: nfcSelectedOrders,
+        orders: orders,
+        has_active_orders: hasActive
+      },
+      recommendation: hasActive ? 
+        'Hay órdenes activas para este NFC. Deberías procesarlas o cancelarlas antes de crear nuevas.' :
+        'No hay órdenes activas para este NFC. Puedes crear nuevas órdenes.'
+    });
+
+  } catch (error) {
+    console.error('Error diagnosing NFC:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al diagnosticar el NFC' 
+    });
+  }
+});
+
 PagoRouter.put("/pago/nfc/:nfc/status", async (req, res) => {
   try {
     const { nfc } = req.params;
@@ -86,6 +146,53 @@ PagoRouter.put("/pago/nfc/:nfc/status", async (req, res) => {
 });
 
 // Endpoint para actualizar el status de una orden específica por NFC y orderId
+// Endpoint para actualizar el status de una orden solo por order_id (sin requerir NFC)
+PagoRouter.put("/pago/order/:orderId/status", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'El campo status es requerido' 
+      });
+    }
+
+    // Importar y usar el caso de uso específico
+    const { UpdateOrderStatusById } = await import('../../../../Aplicativo/UpdateOrderStatusById.js');
+    const { PagoRepository } = await import('../../../adapters/repositories/PagoRepository.js');
+    const pagoRepo = new PagoRepository();
+    const updateUseCase = new UpdateOrderStatusById(pagoRepo);
+    
+    const result = await updateUseCase.execute(orderId, status);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result.order
+    });
+
+  } catch (error) {
+    console.error('Error updating order status by orderId:', error);
+    
+    if (error.message.includes('No se encontró') ||
+        error.message.includes('Status inválido') ||
+        error.message.includes('es requerido') ||
+        error.message.includes('Transición de estado no válida')) {
+      return res.status(400).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 PagoRouter.put("/pago/order/:orderId/nfc/:nfc/status", async (req, res) => {
   try {
     const { orderId, nfc } = req.params;

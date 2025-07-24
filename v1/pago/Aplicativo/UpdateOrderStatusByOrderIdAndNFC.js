@@ -21,10 +21,25 @@ export class UpdateOrderStatusByOrderIdAndNFC {
             }
 
             // Verificar que la orden existe y pertenece al NFC
-            const order = await this.pagoRepository.getOrderByIdAndNFC(orderId, nfc);
+            const order = await this.pagoRepository.findOrderByIdAndNFC(orderId, nfc);
             
             if (!order) {
                 throw new Error(`No se encontró la orden ${orderId} asociada al NFC: ${nfc}`);
+            }
+
+            // Si el estado actual ya es el mismo que se quiere establecer, retornar éxito sin hacer cambios
+            if (order.status === newStatus) {
+                return {
+                    success: true,
+                    message: `La orden ${orderId} ya se encuentra en estado '${newStatus}', no se requiere actualización`,
+                    order: {
+                        order_id: order.order_id,
+                        previous_status: order.status,
+                        new_status: order.status,
+                        nfc: nfc,
+                        updated_at: new Date().toISOString()
+                    }
+                };
             }
 
             // Validar transiciones de estado permitidas

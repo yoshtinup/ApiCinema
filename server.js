@@ -20,7 +20,8 @@ import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/
 import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
 import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dispenserRoutes.js";
 import { AnalyticsRouter } from "./v1/Analytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
-import StatisticalAnalyticsModule from "./v1/StatisticalAnalytics/index.js";
+import { AnalyticsRouter as StatisticalAnalyticsRouter } from "./v1/StatisticalAnalytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
+import { StatisticalAnalyticsModule } from "./v1/StatisticalAnalytics/index.js";
 import { db } from "./database/mysql.js";
 // import { swaggerUi, specs } from './swagger.js';
 
@@ -68,6 +69,7 @@ app.use('/api/v1', GoogleAuthRouter);
 app.use("/api/v1", clientRouter);
 app.use("/api/v1", ProductoRouter);
 app.use("/api/v1", clientVerific);
+app.use("/api/v1", StatisticalAnalyticsRouter);
 app.use("/api/v1", CarritoRouter);
 app.use("/api/v1", PaymentRouter);
 app.use("/api/v1", EstadoRouter);

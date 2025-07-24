@@ -3,6 +3,14 @@ import { db } from '../../../../../database/mysql.js';
 
 export class PagoRepository extends IPagoRepository {
   /**
+   * Devuelve la instancia de la base de datos
+   * @returns {Object} - Instancia de la base de datos
+   */
+  getDb() {
+    return db;
+  }
+  
+  /**
    * Devuelve los productos actualizados desde la BD por arreglo de IDs
    * @param {Array<string|number>} ids
    * @returns {Promise<Array<Object>>}
@@ -115,6 +123,30 @@ async createOrder(order) {
     throw new Error(`Error creating new Order: ${error.message}`);
   }
 }
+  /**
+   * Busca una orden por su ID
+   * @param {string|number} orderId - ID de la orden
+   * @returns {Promise<Object|null>} - Orden encontrada o null
+   */
+  async findOrderById(orderId) {
+    if (!orderId) throw new Error('Order ID es requerido');
+    
+    try {
+      // Buscar la orden directamente en la tabla orders
+      const sql = "SELECT * FROM orders WHERE order_id = ? LIMIT 1";
+      const [orders] = await db.query(sql, [orderId]);
+      
+      if (orders.length > 0) {
+        return orders[0];
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error(`Error buscando orden por ID: ${error.message}`);
+    }
+  }
+  
   async updateOrderStatus(orderId, status) {
     const sql = "UPDATE orders SET status = ? WHERE order_id = ?";
     const params = [status, orderId];
@@ -181,20 +213,51 @@ async createOrder(order) {
   }
 
   async getOrdersByNFC(nfc) {
-    const sql = `
-      SELECT o.* 
-      FROM orders o 
-      INNER JOIN usuario u ON o.user_id = u.id 
-      WHERE u.nfc = ? 
-      ORDER BY o.created_at DESC
-    `;
-    const params = [nfc];
-    
     try {
+      // Obtenemos las órdenes de nfc_selected_orders
+      const sqlNfcSelected = `
+        SELECT o.*, nso.selected_at, nso.dispenser_id as selected_dispenser_id
+        FROM nfc_selected_orders nso
+        INNER JOIN orders o ON nso.order_id = o.order_id
+        WHERE nso.nfc = ?
+      `;
+      const paramsNfcSelected = [nfc];
+      
+      console.log('🔍 Executing SQL (getOrdersByNFC - nfc_selected_orders):', sqlNfcSelected);
+      console.log('🔍 With params:', paramsNfcSelected);
+      
+      const [resultNfcSelected] = await db.query(sqlNfcSelected, paramsNfcSelected);
+      
+      // Obtenemos las órdenes regulares
+      const sql = `
+        SELECT o.* 
+        FROM orders o 
+        INNER JOIN usuario u ON o.user_id = u.id 
+        WHERE u.nfc = ? OR o.nfc = ?
+        ORDER BY o.created_at DESC
+      `;
+      const params = [nfc, nfc];
+      
+      console.log('🔍 Executing SQL (getOrdersByNFC - orders):', sql);
+      console.log('🔍 With params:', params);
+      
       const [result] = await db.query(sql, params);
       
+      // Combinar resultados (eliminar duplicados)
+      const combinedResults = [...resultNfcSelected];
+      const existingIds = new Set(resultNfcSelected.map(order => order.order_id));
+      
+      result.forEach(order => {
+        if (!existingIds.has(order.order_id)) {
+          combinedResults.push(order);
+        }
+      });
+      
+      // Ordenar por fecha de creación
+      combinedResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
       // Parse items JSON for each order
-      return result.map(order => {
+      return combinedResults.map(order => {
         try {
           order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
           return order;
@@ -207,6 +270,52 @@ async createOrder(order) {
     } catch (error) {
       console.error('Database Error:', error);
       throw new Error('Error retrieving orders by NFC');
+    }
+  }
+
+  /**
+   * Verifica si existe una orden activa para un NFC específico
+   * @param {string} nfc - NFC a verificar
+   * @returns {Promise<boolean>} - true si existe una orden activa, false en caso contrario
+   */
+  async hasActiveOrderByNFC(nfc) {
+    try {
+      // Verificar en nfc_selected_orders
+      const sqlNfcSelected = `
+        SELECT COUNT(*) as count
+        FROM nfc_selected_orders nso
+        INNER JOIN orders o ON nso.order_id = o.order_id
+        WHERE nso.nfc = ? AND o.status IN ('pending', 'paid')
+      `;
+      const paramsNfcSelected = [nfc];
+
+      console.log('🔍 Executing SQL (hasActiveOrderByNFC - nfc_selected_orders):', sqlNfcSelected);
+      console.log('🔍 With params:', paramsNfcSelected);
+
+      const [resultNfcSelected] = await db.query(sqlNfcSelected, paramsNfcSelected);
+      
+      if (resultNfcSelected[0].count > 0) {
+        return true;
+      }
+
+      // Verificar en orders regulares
+      const sql = `
+        SELECT COUNT(*) as count
+        FROM orders o
+        INNER JOIN usuario u ON o.user_id = u.id
+        WHERE (u.nfc = ? OR o.nfc = ?) AND o.status IN ('pending', 'paid')
+      `;
+      const params = [nfc, nfc];
+
+      console.log('🔍 Executing SQL (hasActiveOrderByNFC - orders):', sql);
+      console.log('🔍 With params:', params);
+
+      const [result] = await db.query(sql, params);
+      
+      return result[0].count > 0;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error checking for active orders by NFC');
     }
   }
 
@@ -451,17 +560,45 @@ async createOrder(order) {
    */
   async findOrderByNFC(nfc) {
     try {
+      // Primero intentamos encontrar una orden en la tabla nfc_selected_orders
+      const sqlNfcSelected = `
+        SELECT o.*, nso.selected_at, nso.dispenser_id as selected_dispenser_id  
+        FROM nfc_selected_orders nso 
+        INNER JOIN orders o ON nso.order_id = o.order_id 
+        WHERE nso.nfc = ?
+      `;
+      const paramsNfcSelected = [nfc];
+
+      console.log('🔍 Executing SQL (nfc_selected_orders):', sqlNfcSelected);
+      console.log('🔍 With params:', paramsNfcSelected);
+
+      const [resultNfcSelected] = await db.query(sqlNfcSelected, paramsNfcSelected);
+
+      // Si encontramos una orden en nfc_selected_orders, la devolvemos
+      if (resultNfcSelected && resultNfcSelected.length > 0) {
+        console.log('✅ Orden encontrada en nfc_selected_orders');
+        const order = resultNfcSelected[0];
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+        }
+        return order;
+      }
+
+      // Si no encontramos en nfc_selected_orders, buscamos en orders por NFC directo
       const sql = `
         SELECT o.*, u.nfc 
         FROM orders o 
         JOIN usuario u ON o.user_id = u.id 
-        WHERE u.nfc = ? 
+        WHERE u.nfc = ? OR o.nfc = ?
         ORDER BY o.created_at DESC 
         LIMIT 1
       `;
-      const params = [nfc];
+      const params = [nfc, nfc];
 
-      console.log('🔍 Executing SQL:', sql);
+      console.log('🔍 Executing SQL (orders fallback):', sql);
       console.log('🔍 With params:', params);
 
       const [result] = await db.query(sql, params);
@@ -482,6 +619,74 @@ async createOrder(order) {
     } catch (error) {
       console.error('Database Error:', error);
       throw new Error('Error finding order by NFC');
+    }
+  }
+
+  /**
+   * Encuentra una orden específica por su ID y NFC
+   * @param {string} orderId - ID de la orden a buscar
+   * @param {string} nfc - NFC del usuario
+   * @returns {Promise<Object|null>} - La orden encontrada o null
+   */
+  async findOrderByIdAndNFC(orderId, nfc) {
+    try {
+      // Primero intentamos encontrar la orden específica en nfc_selected_orders
+      const sqlNfcSelected = `
+        SELECT o.*, nso.selected_at, nso.dispenser_id as selected_dispenser_id  
+        FROM nfc_selected_orders nso 
+        INNER JOIN orders o ON nso.order_id = o.order_id 
+        WHERE nso.order_id = ? AND nso.nfc = ?
+      `;
+      const paramsNfcSelected = [orderId, nfc];
+
+      console.log('🔍 Executing SQL (nfc_selected_orders):', sqlNfcSelected);
+      console.log('🔍 With params:', paramsNfcSelected);
+
+      const [resultNfcSelected] = await db.query(sqlNfcSelected, paramsNfcSelected);
+
+      // Si encontramos una orden en nfc_selected_orders, la devolvemos
+      if (resultNfcSelected && resultNfcSelected.length > 0) {
+        console.log('✅ Orden específica encontrada en nfc_selected_orders');
+        const order = resultNfcSelected[0];
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+        }
+        return order;
+      }
+
+      // Si no encontramos en nfc_selected_orders, buscamos en orders
+      const sql = `
+        SELECT o.*, u.nfc 
+        FROM orders o 
+        JOIN usuario u ON o.user_id = u.id 
+        WHERE o.order_id = ? AND (u.nfc = ? OR o.nfc = ?)
+      `;
+      const params = [orderId, nfc, nfc];
+
+      console.log('🔍 Executing SQL (orders fallback):', sql);
+      console.log('🔍 With params:', params);
+
+      const [result] = await db.query(sql, params);
+      
+      if (result && result.length > 0) {
+        const order = result[0];
+        // Parse items JSON if it's a string
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+        }
+        return order;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error finding order by ID and NFC');
     }
   }
 }

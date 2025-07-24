@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinema - Dashboard de Probabilidad</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      padding-top: 20px;
+    }
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .probability-table {
+      width: 100%;
+    }
+    .probability-bar {
+      height: 20px;
+      background: linear-gradient(90deg, #0d6efd, #6610f2);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="row align-items-center mb-4">
+      <div class="col">
+        <h1>Dashboard de Probabilidad</h1>
+        <p class="text-muted">Análisis estadístico probabilístico de ventas de productos</p>
+      </div>
+      <div class="col-auto">
+        <div class="period-selector">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary period-btn" data-period="today">Hoy</button>
+            <button type="button" class="btn btn-outline-primary period-btn" data-period="week">Semana</button>
+            <button type="button" class="btn btn-outline-primary period-btn active" data-period="month">Mes</button>
+            <button type="button" class="btn btn-outline-primary period-btn" data-period="year">Año</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading-container" class="text-center py-5">
+      <div class="spinner-border text-primary me-3" role="status"></div>
+      Cargando datos...
+    </div>
+
+    <div id="dashboard-content" style="display: none;">
+      <!-- Probability Analysis -->
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Análisis de Probabilidad por Producto</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped" id="probability-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cantidad</th>
+                      <th>Probabilidad</th>
+                      <th>Visualización</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Probability data will be inserted here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Distribución de Probabilidad</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="probability-pie-chart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics of Diversity -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Índices de Diversidad</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 text-center mb-3">
+                  <h6>Índice de Gini</h6>
+                  <div id="gini-gauge" class="gauge-container">
+                    <canvas id="gini-chart" height="150"></canvas>
+                  </div>
+                  <p id="gini-interpretation" class="mt-2">Interpretación del índice</p>
+                </div>
+                <div class="col-md-6 text-center">
+                  <h6>Entropía</h6>
+                  <div id="entropy-gauge" class="gauge-container">
+                    <canvas id="entropy-chart" height="150"></canvas>
+                  </div>
+                  <p id="entropy-interpretation" class="mt-2">Interpretación de la entropía</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Recomendaciones Estadísticas</h5>
+            </div>
+            <div class="card-body" id="recommendations-container">
+              <!-- Recommendations will be inserted here -->
+              <p class="text-center text-muted">Cargando recomendaciones...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price Distribution -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Distribución de Precios</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="price-distribution-chart" height="100"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuración global
+    const API_BASE_URL = '/api/v1';
+    let currentPeriod = 'month';
+    let dashboardData = null;
+    let probabilityPieChart = null;
+    let giniChart = null;
+    let entropyChart = null;
+    let priceDistributionChart = null;
+
+    // Inicializar la aplicación
+    document.addEventListener('DOMContentLoaded', function() {
+      setupEventListeners();
+      loadData(currentPeriod);
+    });
+
+    // Configurar event listeners
+    function setupEventListeners() {
+      // Selector de período
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          const period = this.getAttribute('data-period');
+          currentPeriod = period;
+          loadData(period);
+        });
+      });
+    }
+
+    // Cargar datos
+    async function loadData(period) {
+      try {
+        showLoading(true);
+        
+        const url = `${API_BASE_URL}/analytics/orders?period=${period}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar los datos');
+        }
+        
+        dashboardData = await response.json();
+        renderDashboard(dashboardData);
+        
+        showLoading(false);
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+        showError(error.message);
+      }
+    }
+
+    // Mostrar/ocultar indicador de carga
+    function showLoading(isLoading) {
+      document.getElementById('loading-container').style.display = isLoading ? 'block' : 'none';
+      document.getElementById('dashboard-content').style.display = isLoading ? 'none' : 'block';
+    }
+
+    // Mostrar mensaje de error
+    function showError(message) {
+      showLoading(false);
+      document.getElementById('dashboard-content').innerHTML = `
+        <div class="alert alert-danger">
+          <strong>Error:</strong> ${message}
+          <button class="btn btn-primary mt-3" onclick="loadData(currentPeriod)">Reintentar</button>
+        </div>
+      `;
+    }
+
+    // Renderizar dashboard
+    function renderDashboard(data) {
+      if (!data.success) {
+        showError(data.message || 'Error en los datos');
+        return;
+      }
+      
+      // Renderizar tabla de probabilidades y gráfico
+      renderProbabilityAnalysis(data.productAnalysis);
+      
+      // Renderizar métricas de diversidad
+      renderDiversityMetrics(data.productAnalysis.diversityMetrics);
+      
+      // Renderizar distribución de precios
+      renderPriceDistribution(data.priceAnalysis.distribution);
+      
+      // Renderizar recomendaciones
+      renderRecommendations(data.predictions.recommendations);
+    }
+
+    // Renderizar análisis de probabilidad
+    function renderProbabilityAnalysis(productAnalysis) {
+      // Tabla de probabilidades
+      renderProbabilityTable(productAnalysis.productProbabilities);
+      
+      // Gráfico de probabilidades
+      renderProbabilityPieChart(productAnalysis.productProbabilities);
+    }
+
+    // Renderizar tabla de probabilidades
+    function renderProbabilityTable(productsData) {
+      const tableBody = document.getElementById('probability-table').querySelector('tbody');
+      tableBody.innerHTML = '';
+      
+      productsData.forEach(product => {
+        const probability = (product.probability * 100).toFixed(2);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${product.name}</td>
+          <td>${product.count}</td>
+          <td>${probability}%</td>
+          <td>
+            <div class="progress">
+              <div class="progress-bar bg-primary" role="progressbar" 
+                style="width: ${probability}%" 
+                aria-valuenow="${probability}" 
+                aria-valuemin="0" 
+                aria-valuemax="100">
+              </div>
+            </div>
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Renderizar gráfico de pie de probabilidades
+    function renderProbabilityPieChart(productsData) {
+      const ctx = document.getElementById('probability-pie-chart').getContext('2d');
+      
+      // Limitar a los 5 productos más probables
+      const topProducts = productsData.slice(0, 5);
+      
+      // Preparar datos
+      const labels = topProducts.map(product => product.name);
+      const values = topProducts.map(product => (product.probability * 100).toFixed(2));
+      
+      // Colores para el gráfico
+      const backgroundColors = [
+        'rgba(13, 110, 253, 0.7)',   // azul
+        'rgba(102, 16, 242, 0.7)',   // púrpura
+        'rgba(214, 51, 132, 0.7)',   // rosa
+        'rgba(253, 126, 20, 0.7)',   // naranja
+        'rgba(25, 135, 84, 0.7)'     // verde
+      ];
+      
+      // Destruir gráfico anterior si existe
+      if (probabilityPieChart) {
+        probabilityPieChart.destroy();
+      }
+      
+      // Crear nuevo gráfico
+      probabilityPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: backgroundColors,
+            borderColor: '#fff',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 15,
+                padding: 15
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.label}: ${context.raw}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Renderizar métricas de diversidad
+    function renderDiversityMetrics(metrics) {
+      // Mostrar interpretación
+      document.getElementById('gini-interpretation').textContent = metrics.interpretation.gini;
+      document.getElementById('entropy-interpretation').textContent = metrics.interpretation.entropy;
+      
+      // Gráfico para índice de Gini
+      renderGaugeChart('gini-chart', metrics.giniIndex, 'Índice de Gini');
+      
+      // Gráfico para entropía
+      // Normalizar entropía para que sea un valor entre 0 y 1
+      const maxEntropy = Math.log2(metrics.totalUniqueProducts);
+      const normalizedEntropy = metrics.entropy / maxEntropy;
+      renderGaugeChart('entropy-chart', normalizedEntropy, 'Entropía Normalizada');
+    }
+
+    // Renderizar gráfico tipo gauge
+    function renderGaugeChart(canvasId, value, label) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      
+      // Determinar color según valor
+      let color;
+      if (canvasId.includes('gini')) {
+        // Para Gini, valores altos son "malos" (alta desigualdad)
+        color = value < 0.3 ? '#198754' : // verde
+               value < 0.6 ? '#ffc107' : // amarillo
+               '#dc3545'; // rojo
+      } else {
+        // Para entropía, valores altos son "buenos" (alta diversidad)
+        color = value > 0.7 ? '#198754' : // verde
+               value > 0.4 ? '#ffc107' : // amarillo
+               '#dc3545'; // rojo
+      }
+      
+      // Formatear valor para mostrar
+      const displayValue = (value * 100).toFixed(1) + '%';
+      
+      // Configuración del gráfico
+      const chartConfig = {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [value, 1 - value],
+            backgroundColor: [color, '#e9ecef'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          circumference: 180,
+          rotation: -90,
+          cutout: '70%',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              enabled: false
+            },
+            legend: {
+              display: false
+            }
+          }
+        },
+        plugins: [{
+          id: 'valueInCenter',
+          afterDraw: function(chart) {
+            const width = chart.width;
+            const height = chart.height;
+            const ctx = chart.ctx;
+            
+            ctx.restore();
+            ctx.textBaseline = 'middle';
+            
+            const fontSize = (height / 50).toFixed(2);
+            ctx.font = `bold ${fontSize}em sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = color;
+            
+            ctx.fillText(displayValue, width / 2, height - (height / 4));
+            
+            ctx.restore();
+          }
+        }]
+      };
+      
+      // Crear/actualizar gráfico
+      if (canvasId.includes('gini')) {
+        if (giniChart) giniChart.destroy();
+        giniChart = new Chart(ctx, chartConfig);
+      } else {
+        if (entropyChart) entropyChart.destroy();
+        entropyChart = new Chart(ctx, chartConfig);
+      }
+    }
+
+    // Renderizar distribución de precios
+    function renderPriceDistribution(distribution) {
+      const ctx = document.getElementById('price-distribution-chart').getContext('2d');
+      
+      // Preparar datos
+      const labels = distribution.ranges.map(range => 
+        `$${range.min.toFixed(2)} - $${range.max.toFixed(2)}`
+      );
+      const counts = distribution.ranges.map(range => range.count);
+      const probabilities = distribution.ranges.map(range => 
+        (parseFloat(range.probability) * 100).toFixed(1)
+      );
+      
+      // Destruir gráfico anterior si existe
+      if (priceDistributionChart) {
+        priceDistributionChart.destroy();
+      }
+      
+      // Crear nuevo gráfico
+      priceDistributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Frecuencia',
+            data: counts,
+            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+            borderColor: 'rgba(13, 110, 253, 1)',
+            borderWidth: 1
+          }, {
+            label: 'Probabilidad (%)',
+            data: probabilities,
+            backgroundColor: 'rgba(102, 16, 242, 0.7)',
+            borderColor: 'rgba(102, 16, 242, 1)',
+            borderWidth: 1,
+            yAxisID: 'y1'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Frecuencia'
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Probabilidad (%)'
+              },
+              grid: {
+                display: false
+              },
+              max: 100
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top'
+            }
+          }
+        }
+      });
+    }
+
+    // Renderizar recomendaciones
+    function renderRecommendations(recommendations) {
+      const container = document.getElementById('recommendations-container');
+      container.innerHTML = '';
+      
+      if (!recommendations || recommendations.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">No hay recomendaciones disponibles para este período.</p>';
+        return;
+      }
+      
+      const list = document.createElement('ul');
+      list.className = 'list-group';
+      
+      recommendations.forEach(rec => {
+        const priorityClass = rec.priority === 'Alta' ? 'danger' : 
+                              rec.priority === 'Media' ? 'warning' : 'info';
+        
+        const item = document.createElement('li');
+        item.className = 'list-group-item';
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-1">${rec.title}</h6>
+            <span class="badge bg-${priorityClass}">${rec.priority}</span>
+          </div>
+          <p class="mb-1">${rec.description}</p>
+        `;
+        
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+{
+  "type": "object",
+  "properties": {
+    "salesSummary": {
+      "type": "object",
+      "description": "Resumen de métricas clave de ventas",
+      "properties": {
+        "totalRevenue": {
+          "type": "number",
+          "description": "Ingresos totales en el período seleccionado"
+        },
+        "totalSales": {
+          "type": "number",
+          "description": "Número total de ventas/órdenes en el período"
+        },
+        "averageOrderValue": {
+          "type": "number",
+          "description": "Valor promedio de cada orden"
+        },
+        "growthPercentage": {
+          "type": "number",
+          "description": "Porcentaje de crecimiento respecto al período anterior"
+        }
+      },
+      "required": ["totalRevenue", "totalSales", "averageOrderValue", "growthPercentage"]
+    },
+    "visualization": {
+      "type": "object",
+      "description": "Datos estructurados para visualización en gráficos",
+      "properties": {
+        "charts": {
+          "type": "object",
+          "properties": {
+            "barChart": {
+              "type": "object",
+              "description": "Datos para gráfico de barras",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Etiquetas para el eje X"
+                },
+                "datasets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "data": { 
+                        "type": "array",
+                        "items": { "type": "number" }
+                      },
+                      "color": { "type": "string" }
+                    },
+                    "required": ["name", "data"]
+                  }
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "xAxisTitle": { "type": "string" },
+                    "yAxisTitle": { "type": "string" }
+                  }
+                }
+              },
+              "required": ["labels", "datasets"]
+            },
+            "lineChart": {
+              "type": "object",
+              "description": "Datos para gráfico de líneas",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Etiquetas para el eje X"
+                },
+                "datasets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "data": { 
+                        "type": "array",
+                        "items": { "type": "number" }
+                      },
+                      "color": { "type": "string" }
+                    },
+                    "required": ["name", "data"]
+                  }
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "xAxisTitle": { "type": "string" },
+                    "yAxisTitle": { "type": "string" }
+                  }
+                }
+              },
+              "required": ["labels", "datasets"]
+            },
+            "pieChart": {
+              "type": "object",
+              "description": "Datos para gráfico circular de productos",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Nombres de las categorías"
+                },
+                "datasets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "data": { 
+                        "type": "array",
+                        "items": { "type": "number" }
+                      },
+                      "colors": { 
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "required": ["name", "data"]
+                  }
+                }
+              },
+              "required": ["labels", "datasets"]
+            },
+            "dispenserPieChart": {
+              "type": "object",
+              "description": "Datos para gráfico circular de dispensadores",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Nombres de los dispensadores"
+                },
+                "datasets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "data": { 
+                        "type": "array",
+                        "items": { "type": "number" }
+                      },
+                      "colors": { 
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "required": ["name", "data"]
+                  }
+                }
+              },
+              "required": ["labels", "datasets"]
+            }
+          }
+        }
+      },
+      "required": ["charts"]
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Recomendaciones basadas en el análisis de datos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["opportunity", "warning", "prediction"],
+            "description": "Tipo de recomendación"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje de la recomendación"
+          }
+        },
+        "required": ["type", "message"]
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "description": "Estadísticas descriptivas detalladas",
+      "properties": {
+        "centralTendency": {
+          "type": "object",
+          "properties": {
+            "mean": { "type": "number" },
+            "median": { "type": "number" },
+            "mode": { "type": ["number", "null"] }
+          }
+        },
+        "dispersion": {
+          "type": "object",
+          "properties": {
+            "standardDeviation": { "type": "number" },
+            "variance": { "type": "number" },
+            "range": { "type": "number" },
+            "coefficientOfVariation": { "type": "number" }
+          }
+        },
+        "shape": {
+          "type": "object",
+          "properties": {
+            "skewness": { "type": "number" },
+            "skewnessInterpretation": { "type": "string" },
+            "kurtosis": { "type": "number" },
+            "kurtosisInterpretation": { "type": "string" }
+          }
+        },
+        "percentiles": {
+          "type": "object",
+          "properties": {
+            "25": { "type": "number" },
+            "50": { "type": "number" },
+            "75": { "type": "number" },
+            "90": { "type": "number" },
+            "95": { "type": "number" },
+            "99": { "type": "number" }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "properties": {
+            "count": { "type": "number" },
+            "sum": { "type": "number" },
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          }
+        }
+      }
+    }
+  },
+  "required": ["salesSummary", "visualization"]
+}
