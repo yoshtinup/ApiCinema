@@ -52,20 +52,23 @@ export class AnalyticsRepository extends AnalyticsRepositoryPort {
    */
   async getTopSellingProducts(period, limit = 10) {
     try {
-      // Consulta simplificada que siempre funciona
+      // Consulta que usa la tabla orders con datos JSON
       const sql = `
         SELECT 
-          p.id as product_id,
-          p.nombre as product_name,
-          0 as sales_count,
-          1 as total_quantity_sold,
-          COALESCE(p.precio, 0) as total_revenue
-        FROM productos p
-        ORDER BY p.precio DESC
-        LIMIT ?
+          JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].product_id')) as product_id,
+          JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].name')) as product_name,
+          COUNT(*) as sales_count,
+          SUM(JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].quantity'))) as total_quantity_sold,
+          SUM(JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].subtotal'))) as total_revenue
+        FROM orders 
+        WHERE status = 'dispensed'
+        GROUP BY JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].product_id')), 
+                 JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].name'))
+        ORDER BY sales_count DESC
+        LIMIT ${limit}
       `;
 
-      const result = await db.query(sql, [limit]);
+      const result = await db.query(sql);
       // Verificar si result existe y tiene datos
       if (result && result[0] && Array.isArray(result[0])) {
         return result[0];
@@ -223,6 +226,9 @@ export class AnalyticsRepository extends AnalyticsRepositoryPort {
         break;
       case 'month':
         condition = 'AND o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        break;
+      case 'year':
+        condition = 'AND o.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         break;
       case 'custom':
         if (startDate && endDate) {

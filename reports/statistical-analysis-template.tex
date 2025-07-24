@@ -1,0 +1,470 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+
+% Configuración de página
+\geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
+\pagestyle{fancy}
+
+% Colores corporativos
+\definecolor{primaryblue}{RGB}{41,128,185}
+\definecolor{secondaryblue}{RGB}{52,152,219}
+\definecolor{successgreen}{RGB}{39,174,96}
+\definecolor{warningorange}{RGB}{243,156,18}
+\definecolor{dangerred}{RGB}{231,76,60}
+\definecolor{lightgray}{RGB}{236,240,241}
+
+% Configuración de encabezado y pie de página
+\fancyhf{}
+\fancyhead[L]{\textcolor{primaryblue}{\textbf{ApiCinema Analytics}}}
+\fancyhead[R]{\textcolor{gray}{\today}}
+\fancyfoot[C]{\thepage}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    filecolor=primaryblue,
+    urlcolor=primaryblue,
+}
+
+% Título del documento
+\title{
+    \vspace{-2cm}
+    \begin{center}
+        \textcolor{primaryblue}{\Huge\textbf{Reporte de Análisis Estadístico}}\\
+        \vspace{0.5cm}
+        \textcolor{secondaryblue}{\Large Sistema de Pedidos ApiCinema}\\
+        \vspace{0.3cm}
+        \textcolor{gray}{\large Análisis Probabilístico y Business Intelligence}
+    \end{center}
+    \vspace{1cm}
+}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+% Cajas informativas personalizadas
+\newtcolorbox{infobox}[1]{
+    colback=lightgray,
+    colframe=primaryblue,
+    fonttitle=\bfseries,
+    title=#1
+}
+
+\newtcolorbox{warningbox}[1]{
+    colback=warningorange!10,
+    colframe=warningorange,
+    fonttitle=\bfseries,
+    title=#1
+}
+
+\newtcolorbox{successbox}[1]{
+    colback=successgreen!10,
+    colframe=successgreen,
+    fonttitle=\bfseries,
+    title=#1
+}
+
+% Resumen ejecutivo
+\section*{\textcolor{primaryblue}{Resumen Ejecutivo}}
+
+\begin{infobox}{Métricas Principales del Período}
+\begin{itemize}
+    \item \textbf{Pedidos Totales:} \texttt{[TOTAL\_ORDERS]} pedidos procesados
+    \item \textbf{Valor Promedio por Pedido:} \$\texttt{[AVG\_ORDER\_VALUE]}
+    \item \textbf{Ingresos Totales:} \$\texttt{[TOTAL\_REVENUE]}
+    \item \textbf{Tendencia de Crecimiento:} \texttt{[GROWTH\_TREND]}
+    \item \textbf{Satisfacción del Cliente:} \texttt{[CUSTOMER\_SATISFACTION]}\%
+\end{itemize}
+\end{infobox}
+
+\vspace{0.5cm}
+
+\begin{successbox}{Hallazgos Clave}
+\begin{enumerate}
+    \item \texttt{[KEY\_FINDING\_1]}
+    \item \texttt{[KEY\_FINDING\_2]}
+    \item \texttt{[KEY\_FINDING\_3]}
+\end{enumerate}
+\end{successbox}
+
+% Tabla de contenidos
+\newpage
+\tableofcontents
+
+\newpage
+
+% Sección 1: Análisis Estadístico Descriptivo
+\section{\textcolor{primaryblue}{Análisis Estadístico Descriptivo}}
+
+\subsection{Medidas de Tendencia Central}
+
+El análisis de los datos de pedidos revela las siguientes medidas estadísticas:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Medida} & \textbf{Valor} & \textbf{Interpretación} \\
+\midrule
+Media ($\mu$) & \$\texttt{[MEAN]} & Valor típico de pedido \\
+Mediana & \$\texttt{[MEDIAN]} & Valor central \\
+Moda & \$\texttt{[MODE]} & Valor más frecuente \\
+\bottomrule
+\end{tabular}
+\caption{Medidas de Tendencia Central}
+\label{tab:tendencia}
+\end{table}
+
+\subsection{Medidas de Dispersión}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Medida} & \textbf{Valor} & \textbf{Interpretación} \\
+\midrule
+Desviación Estándar ($\sigma$) & \$\texttt{[STD\_DEV]} & Variabilidad típica \\
+Varianza ($\sigma^2$) & \texttt{[VARIANCE]} & Dispersión al cuadrado \\
+Coeficiente de Variación & \texttt{[CV]}\% & Variabilidad relativa \\
+Rango & \$\texttt{[RANGE]} & Amplitud de valores \\
+\bottomrule
+\end{tabular}
+\caption{Medidas de Dispersión}
+\label{tab:dispersion}
+\end{table}
+
+\begin{infobox}{Interpretación de Variabilidad}
+Con un coeficiente de variación de \texttt{[CV]}\%, la variabilidad en los montos de pedidos es \texttt{[VARIABILITY\_LEVEL]}. Esto indica \texttt{[VARIABILITY\_INTERPRETATION]}.
+\end{infobox}
+
+\subsection{Medidas de Forma}
+
+\begin{itemize}
+    \item \textbf{Asimetría (Skewness):} \texttt{[SKEWNESS]} - \texttt{[SKEWNESS\_INTERPRETATION]}
+    \item \textbf{Curtosis:} \texttt{[KURTOSIS]} - \texttt{[KURTOSIS\_INTERPRETATION]}
+\end{itemize}
+
+% Gráfico de distribución (placeholder)
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=12cm,
+    height=8cm,
+    xlabel={Monto del Pedido (\$)},
+    ylabel={Frecuencia},
+    title={Distribución de Montos de Pedidos},
+    grid=major,
+    legend pos=north east,
+]
+% Aquí iría el gráfico generado con datos reales
+\addplot[blue, thick] coordinates {
+    (50,10) (75,25) (100,45) (125,38) (150,28) (175,15) (200,8)
+};
+\legend{Frecuencia Observada}
+\end{axis}
+\end{tikzpicture}
+\caption{Histograma de Distribución de Montos}
+\label{fig:histogram}
+\end{figure}
+
+% Sección 2: Análisis de Distribuciones de Probabilidad
+\section{\textcolor{primaryblue}{Análisis de Distribuciones de Probabilidad}}
+
+\subsection{Distribución Normal}
+
+Los datos de montos de pedidos se ajustan a una distribución normal con parámetros:
+
+\begin{align}
+X &\sim N(\mu = \texttt{[NORMAL\_MU]}, \sigma = \texttt{[NORMAL\_SIGMA]}) \\
+\text{Función de densidad: } f(x) &= \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+\end{align}
+
+\begin{successbox}{Test de Bondad de Ajuste}
+\textbf{Test Kolmogorov-Smirnov:}
+\begin{itemize}
+    \item Estadístico de prueba: \texttt{[KS\_STATISTIC]}
+    \item Valor p: \texttt{[P\_VALUE]}
+    \item Conclusión: \texttt{[KS\_CONCLUSION]}
+\end{itemize}
+\end{successbox}
+
+\subsection{Distribución Poisson para Volumen Diario}
+
+El número de pedidos por día sigue una distribución Poisson:
+
+\begin{align}
+Y &\sim \text{Poisson}(\lambda = \texttt{[POISSON\_LAMBDA]}) \\
+P(Y = k) &= \frac{\lambda^k e^{-\lambda}}{k!}
+\end{align}
+
+\subsection{Probabilidades de Negocio}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Escenario} & \textbf{Probabilidad} & \textbf{Impacto} \\
+\midrule
+Pedido de alto valor ($>\$\texttt{[HIGH\_VALUE]}$) & \texttt{[HIGH\_VALUE\_PROB]}\% & Alto \\
+Día de alto volumen ($>\texttt{[HIGH\_VOLUME]}$ pedidos) & \texttt{[HIGH\_VOLUME\_PROB]}\% & Medio \\
+Pedido de bajo valor ($<\$\texttt{[LOW\_VALUE]}$) & \texttt{[LOW\_VALUE\_PROB]}\% & Bajo \\
+\bottomrule
+\end{tabular}
+\caption{Probabilidades para Escenarios de Negocio}
+\label{tab:probabilities}
+\end{table}
+
+% Sección 3: Business Intelligence
+\section{\textcolor{primaryblue}{Business Intelligence y Insights}}
+
+\subsection{Análisis de Tendencias}
+
+\begin{itemize}
+    \item \textbf{Tendencia de Ingresos:} \texttt{[REVENUE\_TREND]}
+    \item \textbf{Tendencia de Volumen:} \texttt{[VOLUME\_TREND]}
+    \item \textbf{Valor Promedio por Pedido:} \texttt{[AOV\_TREND]}
+\end{itemize}
+
+\subsection{Segmentación de Clientes}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Segmento} & \textbf{Clientes} & \textbf{Porcentaje} & \textbf{Valor Promedio} \\
+\midrule
+VIP & \texttt{[VIP\_COUNT]} & \texttt{[VIP\_PERCENTAGE]}\% & \$\texttt{[VIP\_AVG]} \\
+Leales & \texttt{[LOYAL\_COUNT]} & \texttt{[LOYAL\_PERCENTAGE]}\% & \$\texttt{[LOYAL\_AVG]} \\
+Regulares & \texttt{[REGULAR\_COUNT]} & \texttt{[REGULAR\_PERCENTAGE]}\% & \$\texttt{[REGULAR\_AVG]} \\
+En Riesgo & \texttt{[RISK\_COUNT]} & \texttt{[RISK\_PERCENTAGE]}\% & \$\texttt{[RISK\_AVG]} \\
+Nuevos & \texttt{[NEW\_COUNT]} & \texttt{[NEW\_PERCENTAGE]}\% & \$\texttt{[NEW\_AVG]} \\
+\bottomrule
+\end{tabular}
+\caption{Segmentación RFM de Clientes}
+\label{tab:segments}
+\end{table}
+
+% Sección 4: Oportunidades y Riesgos
+\section{\textcolor{primaryblue}{Identificación de Oportunidades y Riesgos}}
+
+\subsection{Oportunidades Detectadas}
+
+\begin{enumerate}
+    \item \textbf{\texttt{[OPPORTUNITY\_1\_TITLE]}}
+    \begin{itemize}
+        \item \textit{Impacto Potencial:} \texttt{[OPPORTUNITY\_1\_IMPACT]}
+        \item \textit{Confianza:} \texttt{[OPPORTUNITY\_1\_CONFIDENCE]}\%
+        \item \textit{ROI Estimado:} \texttt{[OPPORTUNITY\_1\_ROI]}
+        \item \textit{Acciones:} \texttt{[OPPORTUNITY\_1\_ACTIONS]}
+    \end{itemize}
+    
+    \item \textbf{\texttt{[OPPORTUNITY\_2\_TITLE]}}
+    \begin{itemize}
+        \item \textit{Impacto Potencial:} \texttt{[OPPORTUNITY\_2\_IMPACT]}
+        \item \textit{Confianza:} \texttt{[OPPORTUNITY\_2\_CONFIDENCE]}\%
+        \item \textit{ROI Estimado:} \texttt{[OPPORTUNITY\_2\_ROI]}
+        \item \textit{Acciones:} \texttt{[OPPORTUNITY\_2\_ACTIONS]}
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Riesgos Identificados}
+
+\begin{warningbox}{Riesgos de Alta Prioridad}
+\begin{enumerate}
+    \item \textbf{\texttt{[RISK\_1\_TITLE]}}
+    \begin{itemize}
+        \item \textit{Severidad:} \texttt{[RISK\_1\_SEVERITY]}
+        \item \textit{Probabilidad:} \texttt{[RISK\_1\_PROBABILITY]}\%
+        \item \textit{Mitigación:} \texttt{[RISK\_1\_MITIGATION]}
+    \end{itemize}
+    
+    \item \textbf{\texttt{[RISK\_2\_TITLE]}}
+    \begin{itemize}
+        \item \textit{Severidad:} \texttt{[RISK\_2\_SEVERITY]}
+        \item \textit{Probabilidad:} \texttt{[RISK\_2\_PROBABILITY]}\%
+        \item \textit{Mitigación:} \texttt{[RISK\_2\_MITIGATION]}
+    \end{itemize}
+\end{enumerate}
+\end{warningbox}
+
+% Sección 5: Recomendaciones
+\section{\textcolor{primaryblue}{Recomendaciones Estratégicas}}
+
+\subsection{Acciones Inmediatas (1-2 semanas)}
+
+\begin{enumerate}
+    \item \texttt{[IMMEDIATE\_ACTION\_1]}
+    \item \texttt{[IMMEDIATE\_ACTION\_2]}
+    \item \texttt{[IMMEDIATE\_ACTION\_3]}
+\end{enumerate}
+
+\subsection{Objetivos a Corto Plazo (1-3 meses)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Objetivo} & \textbf{Meta} & \textbf{Métrica de Éxito} \\
+\midrule
+\texttt{[SHORT\_GOAL\_1]} & \texttt{[SHORT\_TARGET\_1]} & \texttt{[SHORT\_METRIC\_1]} \\
+\texttt{[SHORT\_GOAL\_2]} & \texttt{[SHORT\_TARGET\_2]} & \texttt{[SHORT\_METRIC\_2]} \\
+\texttt{[SHORT\_GOAL\_3]} & \texttt{[SHORT\_TARGET\_3]} & \texttt{[SHORT\_METRIC\_3]} \\
+\bottomrule
+\end{tabular}
+\caption{Objetivos a Corto Plazo}
+\label{tab:short-goals}
+\end{table}
+
+\subsection{Estrategia a Largo Plazo (6-12 meses)}
+
+\begin{infobox}{Visión Estratégica}
+\texttt{[STRATEGIC\_VISION]}
+
+\textbf{Pilares Estratégicos:}
+\begin{enumerate}
+    \item \texttt{[STRATEGIC\_PILLAR\_1]}
+    \item \texttt{[STRATEGIC\_PILLAR\_2]}
+    \item \texttt{[STRATEGIC\_PILLAR\_3]}
+    \item \texttt{[STRATEGIC\_PILLAR\_4]}
+\end{enumerate}
+\end{infobox}
+
+% Sección 6: Análisis de Escenarios
+\section{\textcolor{primaryblue}{Análisis de Escenarios}}
+
+\subsection{Escenario Optimista}
+
+\begin{successbox}{Proyección Optimista (Probabilidad: 25\%)}
+\begin{itemize}
+    \item \textbf{Crecimiento de Ingresos:} +30\%
+    \item \textbf{Reducción de Churn:} -50\%
+    \item \textbf{Incremento AOV:} +20\%
+    \item \textbf{Acciones Requeridas:} \texttt{[OPTIMISTIC\_ACTIONS]}
+\end{itemize}
+\end{successbox}
+
+\subsection{Escenario Realista}
+
+\begin{infobox}{Proyección Realista (Probabilidad: 60\%)}
+\begin{itemize}
+    \item \textbf{Crecimiento de Ingresos:} +10\%
+    \item \textbf{Churn Rate:} Estable
+    \item \textbf{Incremento AOV:} +5\%
+    \item \textbf{Acciones Requeridas:} \texttt{[REALISTIC\_ACTIONS]}
+\end{itemize}
+\end{infobox}
+
+\subsection{Escenario Pesimista}
+
+\begin{warningbox}{Proyección Pesimista (Probabilidad: 15\%)}
+\begin{itemize}
+    \item \textbf{Declive de Ingresos:} -10\%
+    \item \textbf{Incremento de Churn:} +30\%
+    \item \textbf{AOV:} Estable
+    \item \textbf{Plan de Contingencia:} \texttt{[PESSIMISTIC\_PLAN]}
+\end{itemize}
+\end{warningbox}
+
+% Sección 7: Conclusiones
+\section{\textcolor{primaryblue}{Conclusiones y Próximos Pasos}}
+
+\subsection{Conclusiones Principales}
+
+\begin{enumerate}
+    \item \texttt{[CONCLUSION\_1]}
+    \item \texttt{[CONCLUSION\_2]}
+    \item \texttt{[CONCLUSION\_3]}
+\end{enumerate}
+
+\subsection{Plan de Implementación}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Fase} & \textbf{Duración} & \textbf{Enfoque} & \textbf{Hitos Clave} \\
+\midrule
+Fase 1 & 1-2 meses & Mejoras inmediatas & \texttt{[PHASE1\_MILESTONES]} \\
+Fase 2 & 3-6 meses & Optimización & \texttt{[PHASE2\_MILESTONES]} \\
+Fase 3 & 6-12 meses & Expansión & \texttt{[PHASE3\_MILESTONES]} \\
+\bottomrule
+\end{tabular}
+\caption{Fases de Implementación}
+\label{tab:implementation}
+\end{table}
+
+\subsection{Indicadores de Seguimiento}
+
+\begin{itemize}
+    \item \textbf{KPIs Primarios:} \texttt{[PRIMARY\_KPIS]}
+    \item \textbf{KPIs Secundarios:} \texttt{[SECONDARY\_KPIS]}
+    \item \textbf{Frecuencia de Revisión:} \texttt{[REVIEW\_FREQUENCY]}
+\end{itemize}
+
+% Anexos
+\newpage
+\section*{\textcolor{primaryblue}{Anexos}}
+
+\subsection*{Anexo A: Metodología Estadística}
+
+Este análisis utiliza las siguientes metodologías:
+
+\begin{itemize}
+    \item \textbf{Estadística Descriptiva:} Cálculo de medidas de tendencia central, dispersión y forma
+    \item \textbf{Test de Normalidad:} Kolmogorov-Smirnov para verificar distribución normal
+    \item \textbf{Análisis RFM:} Segmentación basada en Recencia, Frecuencia y Monetario
+    \item \textbf{Detección de Outliers:} Método de rango intercuartílico (IQR)
+    \item \textbf{Análisis de Correlación:} Coeficiente de Pearson
+\end{itemize}
+
+\subsection*{Anexo B: Fórmulas Estadísticas}
+
+\begin{align}
+\text{Media: } \bar{x} &= \frac{1}{n}\sum_{i=1}^{n} x_i \\
+\text{Desviación Estándar: } s &= \sqrt{\frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2} \\
+\text{Coeficiente de Variación: } CV &= \frac{s}{\bar{x}} \times 100\% \\
+\text{Asimetría: } \gamma_1 &= \frac{\mu_3}{\sigma^3} \\
+\text{Curtosis: } \gamma_2 &= \frac{\mu_4}{\sigma^4} - 3
+\end{align}
+
+\subsection*{Anexo C: Glosario de Términos}
+
+\begin{itemize}
+    \item \textbf{AOV:} Average Order Value (Valor Promedio por Pedido)
+    \item \textbf{Churn Rate:} Tasa de abandono de clientes
+    \item \textbf{RFM:} Recency, Frequency, Monetary (análisis de segmentación)
+    \item \textbf{KS Test:} Kolmogorov-Smirnov (test de bondad de ajuste)
+    \item \textbf{CV:} Coefficient of Variation (Coeficiente de Variación)
+\end{itemize}
+
+% Pie de página del reporte
+\vfill
+\begin{center}
+\textcolor{gray}{\small
+Reporte generado automáticamente por ApiCinema Statistical Analytics System \\
+\texttt{[GENERATION\_TIMESTAMP]} | Versión 1.0.0
+}
+\end{center}
+
+\end{document}

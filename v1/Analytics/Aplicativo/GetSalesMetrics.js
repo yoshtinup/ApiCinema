@@ -18,7 +18,7 @@ export class GetSalesMetrics {
   async execute(period = 'today', startDate = null, endDate = null) {
     // Validar y normalizar período
     period = period || 'today'; // Si period es undefined, usar 'today'
-    const validPeriods = ['today', 'week', 'month', 'custom'];
+    const validPeriods = ['today', 'week', 'month', 'year', 'custom'];
     if (!validPeriods.includes(period)) {
       console.warn(`Invalid period received: ${period}, using 'today' as default`);
       period = 'today'; // Usar valor por defecto en lugar de lanzar error

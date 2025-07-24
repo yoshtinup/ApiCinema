@@ -443,4 +443,45 @@ async createOrder(order) {
       throw new Error('Error clearing selected order from NFC');
     }
   }
+
+  /**
+   * Busca una orden por NFC del usuario
+   * @param {string} nfc - El código NFC del usuario
+   * @returns {Promise<Object|null>} - La primera orden encontrada para ese NFC o null
+   */
+  async findOrderByNFC(nfc) {
+    try {
+      const sql = `
+        SELECT o.*, u.nfc 
+        FROM orders o 
+        JOIN usuario u ON o.user_id = u.id 
+        WHERE u.nfc = ? 
+        ORDER BY o.created_at DESC 
+        LIMIT 1
+      `;
+      const params = [nfc];
+
+      console.log('🔍 Executing SQL:', sql);
+      console.log('🔍 With params:', params);
+
+      const [result] = await db.query(sql, params);
+      
+      if (result && result.length > 0) {
+        const order = result[0];
+        // Parse items JSON if it's a string
+        try {
+          order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        } catch (parseError) {
+          console.error('Error parsing items JSON for order:', order.order_id, parseError);
+          order.items = [];
+        }
+        return order;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error finding order by NFC');
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { GetSalesMetrics } from '../../../Aplicativo/GetSalesMetrics.js';
 import { GetTopSellingProducts } from '../../../Aplicativo/GetTopSellingProducts.js';
 import { GetDashboardData } from '../../../Aplicativo/GetDashboardData.js';
+import { GetProbabilityAnalysis } from '../../../Aplicativo/GetProbabilityAnalysis.js';
 
 /**
  * Controlador para las funcionalidades de Analytics
@@ -10,6 +11,7 @@ export class AnalyticsController {
     this.getSalesMetricsUseCase = new GetSalesMetrics(analyticsRepository);
     this.getTopSellingProductsUseCase = new GetTopSellingProducts(analyticsRepository);
     this.getDashboardDataUseCase = new GetDashboardData(analyticsRepository);
+    this.getProbabilityAnalysisUseCase = new GetProbabilityAnalysis(analyticsRepository);
   }
 
   /**
@@ -141,6 +143,31 @@ export class AnalyticsController {
         success: false,
         error: error.message,
         message: 'Failed to get sales summary'
+      });
+    }
+  }
+
+  /**
+   * Obtiene análisis completo de probabilidades y distribuciones
+   * GET /api/v1/analytics/probability?period=month&type=sales
+   */
+  async getProbabilityAnalysis(req, res) {
+    try {
+      const { period = 'month', type = 'sales' } = req.query;
+      
+      const analysisData = await this.getProbabilityAnalysisUseCase.execute(period, type);
+
+      res.status(200).json({
+        success: true,
+        data: analysisData,
+        message: 'Probability analysis retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Error in getProbabilityAnalysis controller:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Failed to get probability analysis'
       });
     }
   }

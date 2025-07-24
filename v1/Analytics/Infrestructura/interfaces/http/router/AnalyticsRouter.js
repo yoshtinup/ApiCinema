@@ -77,6 +77,19 @@ AnalyticsRouter.get('/sales-summary',
 );
 
 // ===== MIDDLEWARE DE MANEJO DE ERRORES =====
+/**
+ * @route GET /api/v1/analytics/probability
+ * @desc Obtiene análisis de probabilidades y distribuciones
+ * @query {string} period - Período: today, week, month, year
+ * @query {string} type - Tipo: sales, products, users, dispensers
+ * @access Admin
+ */
+AnalyticsRouter.get('/probability',
+  auditLogger('Consulta Análisis de Probabilidades'),
+  (req, res) => analyticsController.getProbabilityAnalysis(req, res)
+);
+
+// ===== MIDDLEWARE DE MANEJO DE ERRORES =====
 AnalyticsRouter.use((error, req, res, next) => {
   console.error('Analytics Router Error:', error);
   res.status(500).json({

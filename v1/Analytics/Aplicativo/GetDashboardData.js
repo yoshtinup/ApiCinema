@@ -14,7 +14,7 @@ export class GetDashboardData {
   async execute(period = 'today') {
     // Validar y normalizar período
     period = period || 'today';
-    const validPeriods = ['today', 'week', 'month', 'custom'];
+    const validPeriods = ['today', 'week', 'month', 'year', 'custom'];
     if (!validPeriods.includes(period)) {
       console.warn(`Invalid period received: ${period}, using 'today' as default`);
       period = 'today';
