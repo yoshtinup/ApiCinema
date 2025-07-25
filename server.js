@@ -22,6 +22,7 @@ import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dis
 import { AnalyticsRouter } from "./v1/Analytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
 import { AnalyticsRouter as StatisticalAnalyticsRouter } from "./v1/StatisticalAnalytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
 import { StatisticalAnalyticsModule } from "./v1/StatisticalAnalytics/index.js";
+import { CorreoRouter } from "./v1/Services/Infrestructura/interfaces/http/router/CorreoRouter.js";
 import { db } from "./database/mysql.js";
 // import { swaggerUi, specs } from './swagger.js';
 
@@ -76,7 +77,7 @@ app.use("/api/v1", EstadoRouter);
 app.use("/api/v1", PagoRouter);
 app.use("/api/v1", DispenserRouter);
 app.use("/api/v1/analytics", AnalyticsRouter);
-
+app.use("/api/v1", CorreoRouter);
 // Statistics routes will be added after initialization
 
 // --- Swagger Documentation ---
