@@ -1,7 +1,7 @@
 /**
  * Método auxiliar para usar datos de ejemplo para la gráfica de barras
  */
-_useFallbackBarChartData(periodos, datos, grouping) {
+function useFallbackBarChartData(periodos, datos, grouping) {
   periodos.length = 0; // Limpiar array
   
   if (grouping === 'trimestre') {

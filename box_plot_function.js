@@ -4,8 +4,8 @@
  * @param {string} analysisType - Tipo de análisis ('sales', 'products', etc)
  * @returns {Object} - Configuración de box plot
  */
-_prepareBoxPlotData(rawData, analysisType = 'sales') {
-  try {
+async function _prepareBoxPlotData(rawData, analysisType = 'sales') { 
+     try {
     // Importar la función de ayuda para cálculos de box plot
     const { calculateBoxPlotStats } = await import('./visualization_helpers.js');
 
