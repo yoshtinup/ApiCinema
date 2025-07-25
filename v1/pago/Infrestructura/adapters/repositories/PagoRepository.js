@@ -689,4 +689,84 @@ async createOrder(order) {
       throw new Error('Error finding order by ID and NFC');
     }
   }
+
+  /**
+   * Obtiene los productos más vendidos analizando el campo JSON 'items' de las órdenes
+   * @param {number} limit - Número máximo de productos a retornar
+   * @param {string} period - Período de tiempo: 'week', 'month', 'year', 'all'
+   * @returns {Promise<Array>} Lista de productos más vendidos
+   */
+  async getBestSellingProducts(limit = 10, period = 'all') {
+    try {
+      // Construir condición de fecha según el período
+      let dateCondition = '';
+      switch (period) {
+        case 'week':
+          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+          break;
+        case 'month':
+          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          break;
+        case 'year':
+          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          break;
+        default:
+          dateCondition = ''; // Sin filtro de fecha para 'all'
+      }
+
+      // Consulta SQL que extrae y analiza los productos del campo JSON
+      const sql = `
+        WITH product_sales AS (
+          SELECT 
+            JSON_EXTRACT(item.value, '$.product_id') as product_id,
+            JSON_UNQUOTE(JSON_EXTRACT(item.value, '$.name')) as product_name,
+            CAST(JSON_EXTRACT(item.value, '$.price') AS DECIMAL(10,2)) as price,
+            CAST(JSON_EXTRACT(item.value, '$.quantity') AS UNSIGNED) as quantity,
+            CAST(JSON_EXTRACT(item.value, '$.subtotal') AS DECIMAL(10,2)) as subtotal,
+            o.created_at,
+            o.status
+          FROM orders o
+          JOIN JSON_TABLE(o.items, '$[*]' COLUMNS (
+            rowid FOR ORDINALITY,
+            value JSON PATH '$'
+          )) as item
+          ${dateCondition}
+          AND o.status IN ('paid', 'dispensed')
+        )
+        SELECT 
+          product_id,
+          product_name,
+          COUNT(*) as order_count,
+          SUM(quantity) as total_quantity,
+          SUM(subtotal) as total_revenue,
+          AVG(price) as average_price,
+          MIN(created_at) as first_sale,
+          MAX(created_at) as last_sale
+        FROM product_sales
+        WHERE product_id IS NOT NULL
+        GROUP BY product_id, product_name
+        ORDER BY total_quantity DESC, total_revenue DESC
+        LIMIT ?
+      `;
+
+      const [results] = await db.query(sql, [limit]);
+      
+      // Formatear los resultados
+      return results.map(product => ({
+        product_id: parseInt(product.product_id),
+        product_name: product.product_name,
+        order_count: product.order_count,
+        total_quantity: product.total_quantity,
+        total_revenue: parseFloat(product.total_revenue),
+        average_price: parseFloat(product.average_price),
+        first_sale: product.first_sale,
+        last_sale: product.last_sale,
+        revenue_percentage: 0, // Se calculará en el use case
+        quantity_percentage: 0 // Se calculará en el use case
+      }));
+    } catch (error) {
+      console.error('Database Error getting best selling products:', error);
+      throw new Error('Error retrieving best selling products');
+    }
+  }
 }

@@ -20,6 +20,7 @@ import { EstadoRouter } from "./v1/Estado/Infrestructura/interfaces/http/router/
 import { PagoRouter } from "./v1/pago/Infrestructura/interfaces/http/router/PagoRouter.js";
 import DispenserRouter from "./v1/dispensador/Infrestructura/interfaces/http/dispenserRoutes.js";
 import { AnalyticsRouter } from "./v1/Analytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
+import { ReportsRouter } from './v1/pago/Infrestructura/interfaces/http/ReportsRouter.js';
 import { AnalyticsRouter as StatisticalAnalyticsRouter } from "./v1/StatisticalAnalytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
 import { StatisticalAnalyticsModule } from "./v1/StatisticalAnalytics/index.js";
 import { db } from "./database/mysql.js";
@@ -76,6 +77,7 @@ app.use("/api/v1", EstadoRouter);
 app.use("/api/v1", PagoRouter);
 app.use("/api/v1", DispenserRouter);
 app.use("/api/v1/analytics", AnalyticsRouter);
+app.use("/api/v1/reports", ReportsRouter);
 
 // Statistics routes will be added after initialization
 
