@@ -754,25 +754,32 @@ async createOrder(order) {
         }
         
         productStats[productId].order_count.add(row.order_id);
-        productStats[productId].total_quantity += row.quantity;
-        productStats[productId].total_revenue += row.subtotal;
-        productStats[productId].prices.push(row.price);
+        productStats[productId].total_quantity += parseInt(row.quantity) || 0;
+        productStats[productId].total_revenue += parseFloat(row.subtotal) || 0;
+        productStats[productId].prices.push(parseFloat(row.price) || 0);
         productStats[productId].dates.push(row.created_at);
       });
       
       // Convertir a array y calcular promedios
-      const results = Object.values(productStats).map(product => ({
-        product_id: product.product_id,
-        product_name: product.product_name,
-        order_count: product.order_count.size,
-        total_quantity: product.total_quantity,
-        total_revenue: parseFloat(product.total_revenue.toFixed(2)),
-        average_price: parseFloat((product.prices.reduce((a, b) => a + b, 0) / product.prices.length).toFixed(2)),
-        first_sale: new Date(Math.min(...product.dates.map(d => new Date(d)))),
-        last_sale: new Date(Math.max(...product.dates.map(d => new Date(d)))),
-        revenue_percentage: 0,
-        quantity_percentage: 0
-      }));
+      const results = Object.values(productStats).map(product => {
+        const totalRevenue = parseFloat(product.total_revenue) || 0;
+        const averagePrice = product.prices.length > 0 
+          ? parseFloat((product.prices.reduce((a, b) => a + b, 0) / product.prices.length)) || 0 
+          : 0;
+        
+        return {
+          product_id: product.product_id,
+          product_name: product.product_name,
+          order_count: product.order_count.size,
+          total_quantity: parseInt(product.total_quantity) || 0,
+          total_revenue: parseFloat(totalRevenue.toFixed(2)),
+          average_price: parseFloat(averagePrice.toFixed(2)),
+          first_sale: product.dates.length > 0 ? new Date(Math.min(...product.dates.map(d => new Date(d)))) : null,
+          last_sale: product.dates.length > 0 ? new Date(Math.max(...product.dates.map(d => new Date(d)))) : null,
+          revenue_percentage: 0,
+          quantity_percentage: 0
+        };
+      });
       
       // Ordenar por cantidad total vendida
       results.sort((a, b) => b.total_quantity - a.total_quantity || b.total_revenue - a.total_revenue);
