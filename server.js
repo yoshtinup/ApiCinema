@@ -67,6 +67,7 @@ configureGoogleAuth();
 
 // Rutas de autenticación Google
 app.use('/api/v1', GoogleAuthRouter);
+app.use('/api/v1', CorreoRouter);
 
 // --- Tus rutas API existentes ---
 app.use("/api/v1", clientRouter);
