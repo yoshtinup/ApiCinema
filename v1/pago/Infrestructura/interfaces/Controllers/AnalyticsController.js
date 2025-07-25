@@ -42,7 +42,7 @@ export class AnalyticsController {
       }
 
       // Importar dinámicamente el caso de uso
-      const { GetOrderValueDistribution } = await import('../../Aplicativo/GetOrderValueDistribution.js');
+      const { GetOrderValueDistribution } = await import('../../../Aplicativo/GetOrderValueDistribution.js');
       const getOrderValueDistributionUseCase = new GetOrderValueDistribution(this.pagoRepository);
 
       // Ejecutar análisis
@@ -90,7 +90,7 @@ export class AnalyticsController {
       const { period = 'month', target_quantity = 3 } = req.query;
 
       // Importar dinámicamente el caso de uso
-      const { GetProductsPerOrderDistribution } = await import('../../Aplicativo/GetProductsPerOrderDistribution.js');
+      const { GetProductsPerOrderDistribution } = await import('../../../Aplicativo/GetProductsPerOrderDistribution.js');
       const getProductsPerOrderDistributionUseCase = new GetProductsPerOrderDistribution(this.pagoRepository);
 
       const distributionData = await getProductsPerOrderDistributionUseCase.execute({
@@ -124,7 +124,7 @@ export class AnalyticsController {
       const { period = 'month' } = req.query;
 
       // Importar dinámicamente los casos de uso
-      const { GetOrderValueDistribution } = await import('../../Aplicativo/GetOrderValueDistribution.js');
+      const { GetOrderValueDistribution } = await import('../../../Aplicativo/GetOrderValueDistribution.js');
       const getOrderValueDistributionUseCase = new GetOrderValueDistribution(this.pagoRepository);
 
       // Ejecutar múltiples análisis en paralelo
