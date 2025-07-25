@@ -698,71 +698,86 @@ async createOrder(order) {
    */
   async getBestSellingProducts(limit = 10, period = 'all') {
     try {
-      // Construir condición WHERE completa según el período
-      let whereCondition = '';
-      switch (period) {
-        case 'week':
-          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK) AND o.status IN (\'paid\', \'dispensed\')';
-          break;
-        case 'month':
-          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) AND o.status IN (\'paid\', \'dispensed\')';
-          break;
-        case 'year':
-          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR) AND o.status IN (\'paid\', \'dispensed\')';
-          break;
-        default:
-          whereCondition = 'WHERE o.status IN (\'paid\', \'dispensed\')'; // Solo filtro de status para 'all'
-      }
-
-      // Consulta SQL que extrae y analiza los productos del campo JSON
-      const sql = `
-        WITH product_sales AS (
-          SELECT 
-            JSON_EXTRACT(item.value, '$.product_id') as product_id,
-            JSON_UNQUOTE(JSON_EXTRACT(item.value, '$.name')) as product_name,
-            CAST(JSON_EXTRACT(item.value, '$.price') AS DECIMAL(10,2)) as price,
-            CAST(JSON_EXTRACT(item.value, '$.quantity') AS UNSIGNED) as quantity,
-            CAST(JSON_EXTRACT(item.value, '$.subtotal') AS DECIMAL(10,2)) as subtotal,
-            o.created_at,
-            o.status
-          FROM orders o
-          JOIN JSON_TABLE(o.items, '$[*]' COLUMNS (
-            rowid FOR ORDINALITY,
-            value JSON PATH '$'
-          )) as item
-          ${whereCondition}
-        )
+      // Consulta SQL simplificada que funciona con versiones más antiguas de MySQL
+      let sql = `
         SELECT 
-          product_id,
-          product_name,
-          COUNT(*) as order_count,
-          SUM(quantity) as total_quantity,
-          SUM(subtotal) as total_revenue,
-          AVG(price) as average_price,
-          MIN(created_at) as first_sale,
-          MAX(created_at) as last_sale
-        FROM product_sales
-        WHERE product_id IS NOT NULL
-        GROUP BY product_id, product_name
-        ORDER BY total_quantity DESC, total_revenue DESC
-        LIMIT ?
+          JSON_UNQUOTE(JSON_EXTRACT(items, CONCAT('$[', numbers.n, '].product_id'))) as product_id,
+          JSON_UNQUOTE(JSON_EXTRACT(items, CONCAT('$[', numbers.n, '].name'))) as product_name,
+          CAST(JSON_UNQUOTE(JSON_EXTRACT(items, CONCAT('$[', numbers.n, '].price'))) AS DECIMAL(10,2)) as price,
+          CAST(JSON_UNQUOTE(JSON_EXTRACT(items, CONCAT('$[', numbers.n, '].quantity'))) AS UNSIGNED) as quantity,
+          CAST(JSON_UNQUOTE(JSON_EXTRACT(items, CONCAT('$[', numbers.n, '].subtotal'))) AS DECIMAL(10,2)) as subtotal,
+          created_at,
+          status,
+          id as order_id
+        FROM orders o
+        CROSS JOIN (
+          SELECT 0 as n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 
+          UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+        ) numbers
+        WHERE JSON_EXTRACT(items, CONCAT('$[', numbers.n, ']')) IS NOT NULL
+          AND status IN ('paid', 'dispensed')
       `;
 
-      const [results] = await db.query(sql, [parseInt(limit)]);
+      // Agregar condición de fecha según el período
+      switch (period) {
+        case 'week':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+          break;
+        case 'month':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          break;
+        case 'year':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          break;
+      }
+
+      sql += ' HAVING product_id IS NOT NULL';
+
+      console.log('🔍 Executing SQL:', sql);
+      const [rawResults] = await db.query(sql, []);
       
-      // Formatear los resultados
-      return results.map(product => ({
-        product_id: parseInt(product.product_id),
+      // Procesar resultados para obtener estadísticas agrupadas
+      const productStats = {};
+      
+      rawResults.forEach(row => {
+        const productId = row.product_id;
+        if (!productStats[productId]) {
+          productStats[productId] = {
+            product_id: parseInt(productId),
+            product_name: row.product_name,
+            order_count: new Set(),
+            total_quantity: 0,
+            total_revenue: 0,
+            prices: [],
+            dates: []
+          };
+        }
+        
+        productStats[productId].order_count.add(row.order_id);
+        productStats[productId].total_quantity += row.quantity;
+        productStats[productId].total_revenue += row.subtotal;
+        productStats[productId].prices.push(row.price);
+        productStats[productId].dates.push(row.created_at);
+      });
+      
+      // Convertir a array y calcular promedios
+      const results = Object.values(productStats).map(product => ({
+        product_id: product.product_id,
         product_name: product.product_name,
-        order_count: product.order_count,
+        order_count: product.order_count.size,
         total_quantity: product.total_quantity,
-        total_revenue: parseFloat(product.total_revenue),
-        average_price: parseFloat(product.average_price),
-        first_sale: product.first_sale,
-        last_sale: product.last_sale,
-        revenue_percentage: 0, // Se calculará en el use case
-        quantity_percentage: 0 // Se calculará en el use case
+        total_revenue: parseFloat(product.total_revenue.toFixed(2)),
+        average_price: parseFloat((product.prices.reduce((a, b) => a + b, 0) / product.prices.length).toFixed(2)),
+        first_sale: new Date(Math.min(...product.dates.map(d => new Date(d)))),
+        last_sale: new Date(Math.max(...product.dates.map(d => new Date(d)))),
+        revenue_percentage: 0,
+        quantity_percentage: 0
       }));
+      
+      // Ordenar por cantidad total vendida
+      results.sort((a, b) => b.total_quantity - a.total_quantity || b.total_revenue - a.total_revenue);
+      
+      return results.slice(0, parseInt(limit));
     } catch (error) {
       console.error('Database Error getting best selling products:', error);
       throw new Error('Error retrieving best selling products');
