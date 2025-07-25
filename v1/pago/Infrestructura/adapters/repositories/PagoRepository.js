@@ -698,20 +698,20 @@ async createOrder(order) {
    */
   async getBestSellingProducts(limit = 10, period = 'all') {
     try {
-      // Construir condición de fecha según el período
-      let dateCondition = '';
+      // Construir condición WHERE completa según el período
+      let whereCondition = '';
       switch (period) {
         case 'week':
-          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK) AND o.status IN (\'paid\', \'dispensed\')';
           break;
         case 'month':
-          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) AND o.status IN (\'paid\', \'dispensed\')';
           break;
         case 'year':
-          dateCondition = 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          whereCondition = 'WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR) AND o.status IN (\'paid\', \'dispensed\')';
           break;
         default:
-          dateCondition = ''; // Sin filtro de fecha para 'all'
+          whereCondition = 'WHERE o.status IN (\'paid\', \'dispensed\')'; // Solo filtro de status para 'all'
       }
 
       // Consulta SQL que extrae y analiza los productos del campo JSON
@@ -730,8 +730,7 @@ async createOrder(order) {
             rowid FOR ORDINALITY,
             value JSON PATH '$'
           )) as item
-          ${dateCondition}
-          AND o.status IN ('paid', 'dispensed')
+          ${whereCondition}
         )
         SELECT 
           product_id,
@@ -749,7 +748,7 @@ async createOrder(order) {
         LIMIT ?
       `;
 
-      const [results] = await db.query(sql, [limit]);
+      const [results] = await db.query(sql, [parseInt(limit)]);
       
       // Formatear los resultados
       return results.map(product => ({
