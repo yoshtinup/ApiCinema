@@ -22,9 +22,27 @@ export class CorreoRepository extends IExteriorService {
       };
 
       const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log(`Correo enviado a ${to}: ${result.messageId}`);
-      return result.messageId;
+      
+      // Verificar la estructura de la respuesta y extraer el ID correctamente
+      let messageId = 'unknown';
+      if (result && result.response && result.response.body) {
+        messageId = result.response.body.messageId || result.response.body.id || 'sent-successfully';
+      } else if (result && result.messageId) {
+        messageId = result.messageId;
+      } else if (result && result.id) {
+        messageId = result.id;
+      }
+      
+      console.log(`Correo enviado a ${to}: ${messageId}`);
+      
+      // Debug: mostrar la estructura completa en caso de desarrollo
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 Respuesta completa de Brevo:', JSON.stringify(result, null, 2));
+      }
+      
+      return messageId;
     } catch (error) {
+      console.error(`❌ Error enviando correo a ${to}:`, error.message);
       throw new Error(`Error al enviar el mensaje: ${error.message}`);
     }
   }

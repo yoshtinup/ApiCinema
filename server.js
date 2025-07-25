@@ -80,6 +80,8 @@ app.use("/api/v1", EstadoRouter);
 app.use("/api/v1", PagoRouter);
 app.use("/api/v1", DispenserRouter);
 app.use("/api/v1/analytics", AnalyticsRouter);
+app.use("/api/v1/reports", ReportsRouter);
+app.use("/api/v1/gaussian", GaussianAnalyticsRouter);
 
 // Statistics routes will be added after initialization
 
