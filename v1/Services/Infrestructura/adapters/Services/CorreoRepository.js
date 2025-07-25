@@ -10,16 +10,50 @@ export class CorreoRepository extends IExteriorService {
     );
   }
 
-  async sendCorreo(to, body, subject = "Nuevo Mensaje") {
+  async sendCorreo(to, body, subject = "🎬 Notificación CineSnacks") {
     try {
       const sendSmtpEmail = new brevo.SendSmtpEmail();
       sendSmtpEmail.subject = subject;
       sendSmtpEmail.to = [{ email: to, name: to }];
-      sendSmtpEmail.htmlContent = `<html><body><p>${body}</p></body></html>`;
+      
+      // Mejorar el contenido HTML para evitar filtros de spam
+      sendSmtpEmail.htmlContent = `
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>${subject}</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+              <h2 style="color: #d32f2f; text-align: center;">🎬 CineSnacks</h2>
+              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 16px;">${body}</p>
+              </div>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="font-size: 12px; color: #666; text-align: center;">
+                Este es un mensaje automático de CineSnacks.<br>
+                Si no esperabas este correo, puedes ignorarlo.
+              </p>
+            </div>
+          </body>
+        </html>
+      `;
+      
+      // Configurar remitente con mejor reputación
       sendSmtpEmail.sender = {
-        name: process.env.SENDER_NAME,
-        email: process.env.SENDER_EMAIL
+        name: process.env.SENDER_NAME || "CineSnacks Notificación",
+        email: process.env.SENDER_EMAIL || "yoshgutiperez@gmail.com"
       };
+      
+      // Agregar cabeceras adicionales para mejorar entrega
+      sendSmtpEmail.headers = {
+        "X-Mailin-custom": "CineSnacks-Notification",
+        "X-Priority": "3",
+        "Reply-To": process.env.SENDER_EMAIL || "yoshgutiperez@gmail.com"
+      };
+      
+      // Agregar texto plano como fallback
+      sendSmtpEmail.textContent = `CineSnacks - ${subject}\n\n${body}\n\n---\nEste es un mensaje automático de CineSnacks.`;
 
       const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
       
@@ -33,7 +67,9 @@ export class CorreoRepository extends IExteriorService {
         messageId = result.id;
       }
       
-      console.log(`Correo enviado a ${to}: ${messageId}`);
+      console.log(`✅ Correo enviado a ${to}: ${messageId}`);
+      console.log(`📧 Asunto: ${subject}`);
+      console.log(`👤 Remitente: ${sendSmtpEmail.sender.name} <${sendSmtpEmail.sender.email}>`);
       
       // Debug: mostrar la estructura completa en caso de desarrollo
       if (process.env.NODE_ENV !== 'production') {
@@ -43,6 +79,9 @@ export class CorreoRepository extends IExteriorService {
       return messageId;
     } catch (error) {
       console.error(`❌ Error enviando correo a ${to}:`, error.message);
+      if (error.response) {
+        console.error('📋 Detalles del error:', error.response.data);
+      }
       throw new Error(`Error al enviar el mensaje: ${error.message}`);
     }
   }
