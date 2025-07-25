@@ -17,23 +17,72 @@ export class PaymentRepository extends IExteriorService {
       }
     });
   }
-  async createPayment(item, orderId = null) {
+  async createPayment(item, orderId = null, payerInfo = null) {
     try {
       const preference = new Preference(this.mpClient);
       
       // Generar una referencia externa única si no se proporciona orderId
       const externalReference = orderId || `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
+      // Información del comprador con valores por defecto si no se proporciona
+      const defaultPayer = {
+        first_name: "Cliente",
+        last_name: "CineSnacks",
+        email: "cliente@cinesnacks.com",
+        phone: {
+          area_code: "55",
+          number: "1234567890"
+        },
+        identification: {
+          type: "RFC",
+          number: "XAXX010101000"
+        },
+        address: {
+          street_name: "Calle Principal",
+          street_number: 123,
+          zip_code: "01000"
+        }
+      };
+
+      // Usar información del comprador proporcionada o valores por defecto
+      const payer = payerInfo ? {
+        first_name: payerInfo.first_name || defaultPayer.first_name,
+        last_name: payerInfo.last_name || defaultPayer.last_name,
+        email: payerInfo.email || defaultPayer.email,
+        phone: payerInfo.phone || defaultPayer.phone,
+        identification: payerInfo.identification || defaultPayer.identification,
+        address: payerInfo.address || defaultPayer.address
+      } : defaultPayer;
+
+      // Crear item completo con información requerida por MercadoPago
+      const enhancedItem = {
+        id: `product_${Date.now()}`, // Campo requerido: items.id
+        title: item.title,
+        description: item.description || `${item.title} - Producto de CineSnacks`, // Campo requerido: items.description
+        category_id: item.category_id || "food", // Campo requerido: items.category_id (para snacks/comida)
+        quantity: item.quantity || 1,
+        currency_id: "MXN", // Peso mexicano
+        unit_price: Number(item.unit_price)
+      };
+
       const response = await preference.create({
         body: {
-          items: [item],
+          items: [enhancedItem],
           external_reference: externalReference, // Importante para rastrear la orden
+          
+          // Campo para evitar contracargos - aparece en estado de cuenta
+          statement_descriptor: "CINESNACKS", // Máximo 22 caracteres
+          
+          // Información del comprador (requerida para mejor aprobación)
+          payer: payer,
+          
           back_urls: {
             success: "https://cinesnacks.acstree.xyz/payment-success", 
             failure: "https://cinesnacks.acstree.xyz/carrito",
             pending: "https://cinesnacks.acstree.xyz/payment-pending"
           },
           auto_return: "approved",
+          
           // Configuraciones adicionales para producción
           payment_methods: {
             excluded_payment_types: [
@@ -43,11 +92,13 @@ export class PaymentRepository extends IExteriorService {
             installments: 12 // Máximo de cuotas permitidas
           },
           notification_url: "https://apiempresacinesnack.acstree.xyz/api/v1/payments/webhook",
+          
           // Configuraciones adicionales para debugging
           metadata: {
             order_id: externalReference,
             created_at: new Date().toISOString(),
-            environment: process.env.NODE_ENV || 'development'
+            environment: process.env.NODE_ENV || 'development',
+            store: "CineSnacks"
           }
         }
       });

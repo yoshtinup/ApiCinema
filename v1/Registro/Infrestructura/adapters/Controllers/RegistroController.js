@@ -94,7 +94,8 @@ export class RegistroController {
         nombre: verifiedUser.nombre,
         id_role_fk: verifiedUser.id_role_fk,
         nfc: verifiedUser.nfc ?? null,
-        usuario: verifiedUser.usuario ?? null
+        usuario: verifiedUser.usuario ?? null,
+        email: verifiedUser.email ?? null
       },
       process.env.JWT_SECRET || 'tu_secreto_super_secreto',
       { expiresIn: '1h' }
