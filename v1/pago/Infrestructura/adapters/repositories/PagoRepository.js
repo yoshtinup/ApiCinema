@@ -790,4 +790,109 @@ async createOrder(order) {
       throw new Error('Error retrieving best selling products');
     }
   }
+
+  /**
+   * Obtiene los valores totales de las órdenes para análisis de distribución gaussiana
+   * @param {string} period - Período de tiempo (week, month, quarter, year, all)
+   * @returns {Array<number>} Array de valores de órdenes
+   */
+  async getOrderValuesForDistribution(period = 'month') {
+    try {
+      console.log(`📊 Obteniendo valores de órdenes para distribución (período: ${period})`);
+
+      let sql = `
+        SELECT 
+          total,
+          created_at
+        FROM orders 
+        WHERE status IN ('paid', 'dispensed')
+          AND total > 0
+      `;
+
+      // Agregar filtro de período
+      switch (period.toLowerCase()) {
+        case 'week':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+          break;
+        case 'month':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          break;
+        case 'quarter':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)';
+          break;
+        case 'year':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          break;
+        case 'all':
+          // Sin filtro adicional
+          break;
+      }
+
+      sql += ' ORDER BY created_at DESC';
+
+      console.log('🔍 Executing SQL:', sql);
+      const [results] = await db.query(sql, []);
+      
+      // Extraer solo los valores numéricos
+      const values = results.map(row => parseFloat(row.total)).filter(value => !isNaN(value) && value > 0);
+      
+      console.log(`✅ Obtenidos ${values.length} valores de órdenes para análisis`);
+      return values;
+
+    } catch (error) {
+      console.error('Database Error getting order values for distribution:', error);
+      throw new Error('Error retrieving order values for distribution analysis');
+    }
+  }
+
+  /**
+   * Obtiene la cantidad de productos por orden para análisis de distribución
+   * @param {string} period - Período de tiempo
+   * @returns {Array<number>} Array de cantidades de productos por orden
+   */
+  async getProductQuantitiesPerOrder(period = 'month') {
+    try {
+      console.log(`📊 Obteniendo cantidades de productos por orden (período: ${period})`);
+
+      let sql = `
+        SELECT 
+          JSON_LENGTH(items) as product_count,
+          created_at
+        FROM orders 
+        WHERE status IN ('paid', 'dispensed')
+          AND items IS NOT NULL
+          AND JSON_LENGTH(items) > 0
+      `;
+
+      // Agregar filtro de período
+      switch (period.toLowerCase()) {
+        case 'week':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+          break;
+        case 'month':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          break;
+        case 'quarter':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)';
+          break;
+        case 'year':
+          sql += ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          break;
+      }
+
+      sql += ' ORDER BY created_at DESC';
+
+      const [results] = await db.query(sql, []);
+      
+      // Extraer solo las cantidades
+      const quantities = results.map(row => parseInt(row.product_count)).filter(qty => !isNaN(qty) && qty > 0);
+      
+      console.log(`✅ Obtenidas ${quantities.length} cantidades de productos para análisis`);
+      return quantities;
+
+    } catch (error) {
+      console.error('Database Error getting product quantities per order:', error);
+      throw new Error('Error retrieving product quantities per order');
+    }
+  }
 }
