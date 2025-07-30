@@ -159,7 +159,7 @@ export class RegistroController {
       if (deleted) {
         res.status(200).json({ message: 'Client deleted successfully' });
       } else {
-        res.status(404).json({ message: 'Client not found' });
+        res.status(404).json({ message: 'Client not found for now' });
       }
     } catch (error) {
       res.status(500).json({ message: error.message });
