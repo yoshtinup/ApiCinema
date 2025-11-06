@@ -45,7 +45,7 @@ export class GoogleAuthController {
       console.log('User role:', req.user.id_role_fk);
       
       // Crear URL con múltiples parámetros para que el frontend los pueda procesar
-      const redirectUrl = `http://localhost:5173/dispenser-selector?token=${token}&userId=${req.user.id}&nfc=${req.user.nfc || ''}&role=${req.user.id_role_fk}`;
+      const redirectUrl = `https://www.chuy7x.space/dispenser-selector?token=${token}&userId=${req.user.id}&nfc=${req.user.nfc || ''}&role=${req.user.id_role_fk}`;
       console.log('Redirecting to:', redirectUrl);
       
       res.redirect(redirectUrl);
