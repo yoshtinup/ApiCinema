@@ -56,13 +56,15 @@ export async function findUserByGoogleIdOrEmail(googleId, email) {
   return rows[0] || null;
 }
 export async function createUserFromGoogle(profile) {
-  const sql = 'INSERT INTO usuario (nombre, gmail, usuario, google_id, id_role_fk) VALUES (?, ?, ?, ?, ?)';
+  // Para usuarios de Google OAuth, usar un valor dummy para codigo ya que no usan contraseña
+  const sql = 'INSERT INTO usuario (nombre, gmail, usuario, google_id, id_role_fk, codigo) VALUES (?, ?, ?, ?, ?, ?)';
   const params = [
     profile.displayName,
     profile.emails[0].value,
     profile.displayName.replace(/\s/g, '').toLowerCase(),
     profile.id,
-    1 // id_role_fk por defecto
+    1, // id_role_fk por defecto
+    'GOOGLE_OAUTH_USER' // Valor dummy para codigo, usuarios OAuth no usan contraseña
   ];
   const [result] = await db.query(sql, params);
   
