@@ -24,6 +24,41 @@ export class RegistroController {
     try {
       const { nombre, apellido, telefono, gmail, codigo, usuario, id_role_fk, nfc } = req.body;
 
+      // Validar campos requeridos
+      if (!gmail || !codigo) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'MISSING_REQUIRED_FIELDS',
+          message: 'El correo electrónico y la contraseña son requeridos',
+          fields: {
+            gmail: !gmail ? 'El correo electrónico es requerido' : null,
+            codigo: !codigo ? 'La contraseña es requerida' : null
+          }
+        });
+      }
+
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(gmail)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'INVALID_EMAIL_FORMAT',
+          message: 'El formato del correo electrónico no es válido',
+          field: 'gmail',
+          example: 'ejemplo@correo.com'
+        });
+      }
+
+      // Validar longitud de contraseña
+      if (codigo.length < 4) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'PASSWORD_TOO_SHORT',
+          message: 'La contraseña debe tener al menos 4 caracteres',
+          field: 'codigo'
+        });
+      }
+
       // Crear los datos del cliente y ejecutar el caso de uso para crear al cliente
       const clientData = {
         nombre: nombre ?? '',
@@ -52,15 +87,56 @@ export class RegistroController {
       );
 
       res.status(201).json({
-        ...newClient,
-        nfc: newClient.nfc ?? null,
-        usuario: newClient.usuario ?? null,
-        token
+        success: true,
+        message: '¡Cuenta creada exitosamente!',
+        data: {
+          ...newClient,
+          nfc: newClient.nfc ?? null,
+          usuario: newClient.usuario ?? null,
+          token
+        }
       });
 
-
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.error('Error creating client:', error);
+      
+      // Manejar error de email duplicado
+      if (error.code === 'ER_DUP_ENTRY') {
+        if (error.sqlMessage && error.sqlMessage.includes('unique_gmail')) {
+          return res.status(409).json({ 
+            success: false,
+            error: 'EMAIL_ALREADY_EXISTS',
+            message: 'Este correo electrónico ya está registrado',
+            suggestion: '¿Ya tienes una cuenta? Intenta iniciar sesión',
+            action: 'login',
+            field: 'gmail'
+          });
+        }
+        
+        // Otro tipo de duplicado (usuario, teléfono, etc.)
+        return res.status(409).json({ 
+          success: false,
+          error: 'DUPLICATE_ENTRY',
+          message: 'Ya existe un registro con estos datos',
+          details: error.sqlMessage
+        });
+      }
+      
+      // Error de base de datos
+      if (error.code && error.code.startsWith('ER_')) {
+        return res.status(500).json({ 
+          success: false,
+          error: 'DATABASE_ERROR',
+          message: 'Error al crear la cuenta. Por favor intenta de nuevo.'
+        });
+      }
+      
+      // Error genérico
+      res.status(500).json({ 
+        success: false,
+        error: 'SERVER_ERROR',
+        message: error.message || 'Error al crear la cuenta. Por favor intenta de nuevo.'
+      });
     }
   }
 
@@ -77,41 +153,139 @@ export class RegistroController {
   async verifyLogin(req, res) {
     try {
       const { gmail, password } = req.body;
-      // Validar que ambos campos estén presentes
-      if (!gmail || !password) {
-        return res.status(400).json({ message: 'Username and password are required' });
+      
+      // Validaciones detalladas de campos requeridos
+      if (!gmail && !password) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'MISSING_CREDENTIALS',
+          message: 'Por favor ingresa tu correo electrónico y contraseña',
+          details: {
+            gmail: 'El correo electrónico es requerido',
+            password: 'La contraseña es requerida'
+          }
+        });
+      }
+      
+      if (!gmail) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'MISSING_EMAIL',
+          message: 'Por favor ingresa tu correo electrónico',
+          field: 'gmail'
+        });
+      }
+      
+      if (!password) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'MISSING_PASSWORD',
+          message: 'Por favor ingresa tu contraseña',
+          field: 'password'
+        });
       }
 
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(gmail)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'INVALID_EMAIL_FORMAT',
+          message: 'El formato del correo electrónico no es válido',
+          field: 'gmail',
+          example: 'ejemplo@correo.com'
+        });
+      }
+
+      // Validar longitud de contraseña
+      if (password.length < 4) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'PASSWORD_TOO_SHORT',
+          message: 'La contraseña debe tener al menos 4 caracteres',
+          field: 'password'
+        });
+      }
+
+      // Intentar login
       const verifiedUser = await this.verifyLoginUseCase.execute(gmail, password);
+      
       if (!verifiedUser) {
-        return res.status(401).json({ message: 'Invalid username or password' });
+        return res.status(401).json({ 
+          success: false,
+          error: 'INVALID_CREDENTIALS',
+          message: 'Credenciales inválidas. Por favor verifica tus datos.'
+        });
       }
 
-    const token = jwt.sign(
-      {
-        id: verifiedUser.id,
-        tipo: verifiedUser.tipo,
-        nombre: verifiedUser.nombre,
-        id_role_fk: verifiedUser.id_role_fk,
-        nfc: verifiedUser.nfc ?? null,
-        usuario: verifiedUser.usuario ?? null,
-        email: verifiedUser.email ?? null
-      },
-      process.env.JWT_SECRET || 'tu_secreto_super_secreto',
-      { expiresIn: '1h' }
-    );
+      // Generar token
+      const token = jwt.sign(
+        {
+          id: verifiedUser.id,
+          tipo: verifiedUser.tipo,
+          nombre: verifiedUser.nombre,
+          id_role_fk: verifiedUser.id_role_fk,
+          nfc: verifiedUser.nfc ?? null,
+          usuario: verifiedUser.usuario ?? null,
+          email: verifiedUser.email ?? null
+        },
+        process.env.JWT_SECRET || 'tu_secreto_super_secreto',
+        { expiresIn: '1h' }
+      );
 
-    res.status(200).json({
-      message: 'Login successful',
-
-      userId: verifiedUser.id,
-
-      token,
-      nfc: verifiedUser.nfc ?? null,
-      usuario: verifiedUser.usuario ?? null
-    });
+      res.status(200).json({
+        success: true,
+        message: '¡Inicio de sesión exitoso!',
+        data: {
+          userId: verifiedUser.id,
+          nombre: verifiedUser.nombre,
+          gmail: verifiedUser.gmail,
+          token,
+          nfc: verifiedUser.nfc ?? null,
+          usuario: verifiedUser.usuario ?? null,
+          id_role_fk: verifiedUser.id_role_fk
+        }
+      });
     } catch (error) {
-      res.status(401).json({ message: error.message });
+      console.error('Login error:', error);
+      
+      // Manejar errores específicos del use case
+      if (error.code === 'USER_NOT_FOUND') {
+        return res.status(404).json({ 
+          success: false,
+          error: 'USER_NOT_FOUND',
+          message: 'No existe una cuenta con este correo electrónico',
+          suggestion: '¿Quieres crear una cuenta nueva?',
+          action: 'register'
+        });
+      }
+      
+      if (error.code === 'INVALID_PASSWORD') {
+        return res.status(401).json({ 
+          success: false,
+          error: 'INVALID_PASSWORD',
+          message: 'La contraseña es incorrecta',
+          suggestion: 'Verifica tu contraseña e intenta de nuevo',
+          field: 'password'
+        });
+      }
+      
+      if (error.code === 'INVALID_CREDENTIALS') {
+        return res.status(401).json({ 
+          success: false,
+          error: 'INVALID_CREDENTIALS',
+          message: 'Las credenciales son inválidas',
+          suggestion: 'Verifica tu correo y contraseña'
+        });
+      }
+      
+      // Error genérico
+      res.status(500).json({ 
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Ocurrió un error al iniciar sesión. Por favor intenta de nuevo.',
+        details: error.message
+      });
     }
   }
   

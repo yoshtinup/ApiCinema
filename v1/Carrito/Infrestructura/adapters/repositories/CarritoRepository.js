@@ -64,45 +64,203 @@ export class CarritoRepository extends IProductoRepository {
   }  
   
   async createNewProducto(producto) {
-    // Cambié la tabla y los campos para reflejar un sistema de boletos
-    const sql = "INSERT INTO carrito (iduser, idproducto, fecha, hora) VALUES ( ?, ?, ?, ?)";
-
-    // Convertir valores undefined a null y obtener valores de la instancia `boleto`
-    const params = [
-      producto.iduser ?? null,
-      producto.idproducto ?? null,
-      producto.fecha ?? null,
-      producto.hora ?? null
-    ];
-  
+    // Verificar si el producto ya existe en el carrito del usuario
+    const checkSql = "SELECT id, cantidad FROM carrito WHERE iduser = ? AND idproducto = ?";
+    const checkParams = [producto.iduser, producto.idproducto];
+    
     try {
-      // Ejecutar la consulta SQL con los parámetros
-      const [resultado] = await db.query(sql, params);
-  
-      // Devolver los datos del boleto creado, incluyendo el ID generado
+      const [existing] = await db.query(checkSql, checkParams);
+      
+      // Si ya existe, incrementar la cantidad
+      if (existing.length > 0) {
+        const newQuantity = existing[0].cantidad + (producto.cantidad || 1);
+        const updateSql = "UPDATE carrito SET cantidad = ?, fecha = ?, hora = ? WHERE id = ?";
+        const updateParams = [
+          newQuantity,
+          producto.fecha ?? new Date().toISOString().split('T')[0],
+          producto.hora ?? new Date().toTimeString().split(' ')[0],
+          existing[0].id
+        ];
+        
+        await db.query(updateSql, updateParams);
+        
+        return {
+          id: existing[0].id,
+          iduser: producto.iduser,
+          idproducto: producto.idproducto,
+          cantidad: newQuantity,
+          fecha: producto.fecha,
+          hora: producto.hora,
+          action: 'updated'
+        };
+      }
+      
+      // Si no existe, crear nuevo registro
+      const insertSql = "INSERT INTO carrito (iduser, idproducto, cantidad, fecha, hora) VALUES (?, ?, ?, ?, ?)";
+      const insertParams = [
+        producto.iduser ?? null,
+        producto.idproducto ?? null,
+        producto.cantidad ?? 1,
+        producto.fecha ?? new Date().toISOString().split('T')[0],
+        producto.hora ?? new Date().toTimeString().split(' ')[0]
+      ];
+      
+      const [resultado] = await db.query(insertSql, insertParams);
+      
       return {
         id: resultado.insertId,
         iduser: producto.iduser,
         idproducto: producto.idproducto,
+        cantidad: producto.cantidad ?? 1,
         fecha: producto.fecha,
-        hora: producto.hora
+        hora: producto.hora,
+        action: 'created'
       };
     } catch (error) {
       console.error('Database Error:', error);
-      throw new Error('Error creating new Producto');
+      throw error;
     }
   }
 
   // Nuevo método para obtener los elementos del carrito por ID de usuario
   async getCartItemsByUserId(userId) {
-    const sql = "SELECT * FROM carrito WHERE iduser = ?";
+    const sql = `
+      SELECT 
+        c.id,
+        c.iduser,
+        c.idproducto,
+        c.cantidad,
+        c.fecha,
+        c.hora,
+        p.nombre,
+        p.descripcion,
+        p.precio,
+        p.peso,
+        p.categoria,
+        p.imagen,
+        p.cantidad as stock_disponible,
+        (c.cantidad * p.precio) as subtotal
+      FROM carrito c
+      INNER JOIN productos p ON c.idproducto = p.id
+      WHERE c.iduser = ?
+      ORDER BY c.fecha DESC, c.hora DESC
+    `;
     const params = [userId];
     try {
       const [results] = await db.query(sql, params);
       return results;
     } catch (error) {
       console.error('Database Error:', error);
-      throw new Error('Error retrieving cart items by user ID');
+      throw error;
+    }
+  }
+
+  // Método para incrementar cantidad de un producto en el carrito
+  async incrementQuantity(userId, productId) {
+    const sql = "UPDATE carrito SET cantidad = cantidad + 1 WHERE iduser = ? AND idproducto = ?";
+    const params = [userId, productId];
+    try {
+      const [result] = await db.query(sql, params);
+      if (result.affectedRows === 0) {
+        throw new Error('Cart item not found');
+      }
+      
+      // Obtener la cantidad actualizada
+      const [updated] = await db.query(
+        "SELECT cantidad FROM carrito WHERE iduser = ? AND idproducto = ?",
+        [userId, productId]
+      );
+      
+      return {
+        success: true,
+        message: 'Cantidad incrementada',
+        cantidad: updated[0].cantidad
+      };
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw error;
+    }
+  }
+
+  // Método para decrementar cantidad de un producto en el carrito
+  async decrementQuantity(userId, productId) {
+    // Primero verificar la cantidad actual
+    const checkSql = "SELECT cantidad FROM carrito WHERE iduser = ? AND idproducto = ?";
+    const checkParams = [userId, productId];
+    
+    try {
+      const [current] = await db.query(checkSql, checkParams);
+      
+      if (current.length === 0) {
+        throw new Error('Cart item not found');
+      }
+      
+      // Si la cantidad es 1, eliminar el item
+      if (current[0].cantidad <= 1) {
+        const deleteSql = "DELETE FROM carrito WHERE iduser = ? AND idproducto = ?";
+        await db.query(deleteSql, [userId, productId]);
+        
+        return {
+          success: true,
+          message: 'Producto eliminado del carrito',
+          cantidad: 0,
+          removed: true
+        };
+      }
+      
+      // Si es mayor a 1, decrementar
+      const updateSql = "UPDATE carrito SET cantidad = cantidad - 1 WHERE iduser = ? AND idproducto = ?";
+      await db.query(updateSql, [userId, productId]);
+      
+      // Obtener la cantidad actualizada
+      const [updated] = await db.query(checkSql, checkParams);
+      
+      return {
+        success: true,
+        message: 'Cantidad decrementada',
+        cantidad: updated[0].cantidad,
+        removed: false
+      };
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw error;
+    }
+  }
+
+  // Método para actualizar cantidad directamente
+  async updateQuantity(userId, productId, quantity) {
+    if (quantity < 1) {
+      // Si la cantidad es menor a 1, eliminar el item
+      const deleteSql = "DELETE FROM carrito WHERE iduser = ? AND idproducto = ?";
+      await db.query(deleteSql, [userId, productId]);
+      
+      return {
+        success: true,
+        message: 'Producto eliminado del carrito',
+        cantidad: 0,
+        removed: true
+      };
+    }
+    
+    const sql = "UPDATE carrito SET cantidad = ? WHERE iduser = ? AND idproducto = ?";
+    const params = [quantity, userId, productId];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Cart item not found');
+      }
+      
+      return {
+        success: true,
+        message: 'Cantidad actualizada',
+        cantidad: quantity,
+        removed: false
+      };
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw error;
     }
   }
 

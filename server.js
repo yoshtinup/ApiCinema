@@ -25,6 +25,7 @@ import { AnalyticsRouter as GaussianAnalyticsRouter } from './v1/pago/Infrestruc
 import { AnalyticsRouter as StatisticalAnalyticsRouter } from "./v1/StatisticalAnalytics/Infrestructura/interfaces/http/router/AnalyticsRouter.js";
 import { StatisticalAnalyticsModule } from "./v1/StatisticalAnalytics/index.js";
 import { CorreoRouter } from "./v1/Services/Infrestructura/interfaces/http/router/CorreoRouter.js";
+import StorageRouter from "./v1/Services/Infrestructura/interfaces/http/router/StorageRouter.js";
 import { db } from "./database/mysql.js";
 // import { swaggerUi, specs } from './swagger.js';
 
@@ -68,6 +69,7 @@ configureGoogleAuth();
 // Rutas de autenticación Google
 app.use('/api/v1', GoogleAuthRouter);
 app.use('/api/v1', CorreoRouter);
+app.use('/api/v1/storage', StorageRouter);
 
 // --- Tus rutas API existentes ---
 app.use("/api/v1", clientRouter);

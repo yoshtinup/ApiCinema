@@ -48,7 +48,8 @@ export class RegistroRepository extends IRegistroRepository {
       };
     } catch (error) {
       console.error('Database Error:', error);
-      throw new Error('Error creating new client');
+      // Propagar el error original para mantener código y detalles de MySQL
+      throw error;
     }
   }
   async findLoginByCredentials(gmail, password) {
@@ -58,20 +59,22 @@ export class RegistroRepository extends IRegistroRepository {
     try {
       const [result] = await db.query(sql, params);
       if (result.length === 0) {
-        return null; // Usuario no encontrado
+        // Usuario no encontrado - retornar objeto con tipo de error
+        return { error: 'USER_NOT_FOUND' };
       }
       const user = result[0];
       // Comparar la contraseña encriptada
       const isMatch = await bcrypt.compare(password, user.codigo);
       if (!isMatch) {
-        return null; // Contraseña incorrecta
+        // Contraseña incorrecta - retornar objeto con tipo de error
+        return { error: 'INVALID_PASSWORD' };
       }
       // No devolver el hash
       user.codigo = undefined;
       return user;
     } catch (error) {
       console.error('Database Error:', error);
-      throw new Error('Error finding login information');
+      throw new Error('Error al verificar las credenciales. Por favor intenta de nuevo.');
     }
   }
   

@@ -1,1 +1,0 @@
-"import {db} from './database/mysql.js'; async function showTableStructure() { try { const [results] = await db.query('DESCRIBE orders'); console.table(results); } catch (error) { console.error('Error:', error); } }; showTableStructure();"  

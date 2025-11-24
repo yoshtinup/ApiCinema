@@ -1,6 +1,6 @@
 
 import { IExteriorService } from '../../../Dominio/ports/IExteriorService.js';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 export class PaymentRepository extends IExteriorService {
   constructor() {
@@ -17,6 +17,42 @@ export class PaymentRepository extends IExteriorService {
       }
     });
   }
+  /**
+   * Validar el estado de un pago en MercadoPago.
+   * @param {string} paymentId - ID del pago en MercadoPago.
+   * @returns {Promise<Object>} - Información del pago con su estado.
+   */
+  async validatePayment(paymentId) {
+    try {
+      const payment = new Payment(this.mpClient);
+      
+      // Obtener información del pago desde MercadoPago API
+      const paymentInfo = await payment.get({ id: paymentId });
+      
+      console.log('💳 Validando pago:', {
+        id: paymentInfo.id,
+        status: paymentInfo.status,
+        status_detail: paymentInfo.status_detail,
+        transaction_amount: paymentInfo.transaction_amount,
+        external_reference: paymentInfo.external_reference
+      });
+      
+      return {
+        id: paymentInfo.id,
+        status: paymentInfo.status,
+        status_detail: paymentInfo.status_detail,
+        transaction_amount: paymentInfo.transaction_amount,
+        external_reference: paymentInfo.external_reference,
+        payment_method: paymentInfo.payment_method_id,
+        date_approved: paymentInfo.date_approved,
+        payer: paymentInfo.payer
+      };
+    } catch (error) {
+      console.error('❌ Error validando pago en MercadoPago:', error);
+      throw new Error(`Error validando pago: ${error.message}`);
+    }
+  }
+
   async createPayment(item, orderId = null, payerInfo = null) {
     try {
       const preference = new Preference(this.mpClient);

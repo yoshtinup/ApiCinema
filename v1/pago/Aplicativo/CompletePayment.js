@@ -1,21 +1,61 @@
 import { CreateOrderBase } from "./CreateOrderBase.js";
+import { PaymentRepository } from "../../Services/Infrestructura/adapters/Services/PaymentRepository.js";
 
 export class CompletePayment {
   constructor(pagoRepository, carritoRepository) {
     this.pagoRepository = pagoRepository;
     this.carritoRepository = carritoRepository;
     this.createOrderBase = new CreateOrderBase(pagoRepository);
+    this.paymentRepository = new PaymentRepository();
   }
 
   /**
    * Método para ejecutar la finalización de un pago y crear una orden.
+   * IMPORTANTE: Solo crea la orden si el pago en MercadoPago está APROBADO.
    * @param {Object} paymentData - Datos del pago.
+   * @param {string} paymentData.user_id - ID del usuario.
+   * @param {string} paymentData.dispenser_id - ID del dispensador (opcional).
+   * @param {string} paymentData.nfc - Código NFC del usuario (opcional).
+   * @param {string} paymentData.payment_id - ID del pago en MercadoPago (REQUERIDO).
    * @returns {Promise<Order>} - La orden creada.
    */
   async execute(paymentData) {
-    const { user_id, dispenser_id, nfc } = paymentData;
+    const { user_id, dispenser_id, nfc, payment_id } = paymentData;
     
     try {
+      // 0. VALIDAR QUE EL PAGO FUE EXITOSO EN MERCADOPAGO
+      if (!payment_id) {
+        throw new Error('payment_id es requerido para completar el pago');
+      }
+
+      console.log(`🔍 Validando pago ${payment_id} en MercadoPago...`);
+      const paymentInfo = await this.paymentRepository.validatePayment(payment_id);
+      
+      // Verificar que el pago esté aprobado
+      if (paymentInfo.status !== 'approved') {
+        const statusMessages = {
+          'pending': 'El pago está pendiente de confirmación. Por favor espera.',
+          'in_process': 'El pago está en proceso. Por favor espera.',
+          'rejected': 'El pago fue rechazado. Por favor intenta con otro método de pago.',
+          'cancelled': 'El pago fue cancelado.',
+          'refunded': 'El pago fue reembolsado.',
+          'charged_back': 'El pago fue contracargado.'
+        };
+        
+        const message = statusMessages[paymentInfo.status] || 
+          `El pago no está aprobado (estado: ${paymentInfo.status})`;
+        
+        console.error(`❌ Pago no aprobado:`, {
+          payment_id,
+          status: paymentInfo.status,
+          status_detail: paymentInfo.status_detail
+        });
+        
+        throw new Error(message);
+      }
+
+      console.log(`✅ Pago ${payment_id} validado exitosamente (status: ${paymentInfo.status})`);
+      
       // 1. Obtener los items del carrito del usuario
       const cartItems = await this.carritoRepository.getCartItemsByUserId(user_id);
       
@@ -50,7 +90,9 @@ export class CompletePayment {
         user_id,
         items,
         total,
-        status: 'paid',
+        status: 'paid', // Solo se llega aquí si el pago está aprobado
+        payment_id: payment_id, // Guardar el ID del pago de MercadoPago
+        payment_status: 'approved', // Estado del pago en MercadoPago
         dispenser_id,
         nfc
       };

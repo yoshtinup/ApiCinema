@@ -52,12 +52,23 @@ export class PagoController {
     try {
       const paymentData = {
         user_id: req.body.user_id,
+        payment_id: req.body.payment_id, // ID del pago en MercadoPago (REQUERIDO)
         dispenser_id: req.body.dispenser_id || null,
         nfc: req.user?.nfc || req.body.nfc || null // Agregar NFC del usuario autenticado
       };
       
-      // Log para verificar qué NFC llega
+      // Validar que payment_id esté presente
+      if (!paymentData.payment_id) {
+        return res.status(400).json({ 
+          error: 'payment_id es requerido para completar el pago',
+          message: 'Debes proporcionar el ID del pago de MercadoPago para verificar que fue exitoso'
+        });
+      }
+      
+      // Log para verificar datos del pago
       console.log('=== COMPLETE PAYMENT DEBUG ===');
+      console.log('payment_id:', paymentData.payment_id);
+      console.log('user_id:', paymentData.user_id);
       console.log('req.user?.nfc:', req.user?.nfc);
       console.log('req.body.nfc:', req.body.nfc);
       console.log('paymentData.nfc final:', paymentData.nfc);
@@ -65,10 +76,39 @@ export class PagoController {
       console.log('===============================');
       
       const order = await this.completePaymentUseCase.execute(paymentData);
-      res.status(201).json(order);
+      res.status(201).json({
+        success: true,
+        message: 'Orden creada exitosamente con pago verificado',
+        order
+      });
     } catch (error) {
       console.error('Error completing payment:', error);
-      res.status(500).json({ error: error.message });
+      
+      // Errores de validación de pago (400 Bad Request)
+      if (error.message.includes('payment_id') || 
+          error.message.includes('pendiente') || 
+          error.message.includes('rechazado') ||
+          error.message.includes('cancelado') ||
+          error.message.includes('no está aprobado')) {
+        return res.status(400).json({ 
+          success: false,
+          error: error.message 
+        });
+      }
+      
+      // Errores de validación de datos (404 Not Found)
+      if (error.message.includes('No items in cart')) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'El carrito está vacío. Agrega productos antes de completar el pago.' 
+        });
+      }
+      
+      // Otros errores (500 Internal Server Error)
+      res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
     }
   }
   async getOrdersByUserId(req, res) {
