@@ -32,7 +32,7 @@ export class PaymentService {
         throw new Error('El carrito está vacío');
       }
 
-      // Formatear items para MercadoPago
+      // Formatear items para MercadoPago - VERSIÓN MINIMALISTA
       const mpItems = items.map(item => {
         // Validar precio y cantidad
         const unitPrice = parseFloat(item.precio || item.price);
@@ -46,29 +46,16 @@ export class PaymentService {
           throw new Error(`Cantidad inválida para el producto: ${item.nombre || item.name}`);
         }
 
-        const mpItem = {
-          id: String(`prod_${item.idproducto || item.product_id || item.id}_${user_id}`),
+        // SOLO campos REQUERIDOS - sin description ni id temporalmente
+        return {
           title: String((item.nombre || item.name || 'Producto')
-            .replace(/[^\w\s\-]/gi, '')
+            .replace(/[^\w\s]/gi, ' ')
+            .trim()
             .substring(0, 50)),
           quantity: Number(quantity),
-          unit_price: Number(unitPrice.toFixed(2)),
+          unit_price: Number(unitPrice),
           currency_id: 'MXN'
         };
-
-        // Agregar descripción solo si existe y no está vacía
-        const description = (item.descripcion || item.description || '').trim();
-        if (description.length > 0) {
-          const sanitizedDesc = description
-            .replace(/[^\w\s\-.,]/gi, '')
-            .substring(0, 100)
-            .trim();
-          if (sanitizedDesc.length > 0) {
-            mpItem.description = String(sanitizedDesc);
-          }
-        }
-        
-        return mpItem;
       });
 
       // Calcular totales
@@ -76,19 +63,15 @@ export class PaymentService {
         sum + (item.unit_price * item.quantity), 0
       );
 
-      // Crear preferencia
+      // Crear preferencia - ESTRUCTURA MINIMALISTA
       const preferenceData = {
         items: mpItems,
-        payer: {
-          email: String(`user${user_id}@cinesnacks.com`)
-        },
         back_urls: {
-          success: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`),
-          failure: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`),
-          pending: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`)
+          success: 'https://cinesnacks.chuy7x.space/payment-success',
+          failure: 'https://cinesnacks.chuy7x.space/payment-failure',
+          pending: 'https://cinesnacks.chuy7x.space/payment-pending'
         },
-        auto_return: 'approved',
-        external_reference: String(`USER_${user_id}_${Date.now()}`)
+        auto_return: 'approved'
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
@@ -114,6 +97,10 @@ export class PaymentService {
 
     } catch (error) {
       console.error('❌ Error creando preferencia de MercadoPago:', error);
+      console.error('❌ Error completo:', JSON.stringify(error, null, 2));
+      if (error.cause) {
+        console.error('❌ Causa del error:', JSON.stringify(error.cause, null, 2));
+      }
       throw new Error(`Error al crear preferencia de pago: ${error.message}`);
     }
   }
