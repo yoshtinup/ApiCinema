@@ -74,6 +74,9 @@ export class PaymentService {
       // Crear preferencia
       const preferenceData = {
         items: mpItems,
+        payer: {
+          email: `user${user_id}@cinesnacks.com`
+        },
         back_urls: {
           success: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`,
           failure: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`,
