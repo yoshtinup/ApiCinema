@@ -89,6 +89,9 @@ export class PaymentService {
         total: subtotal.toFixed(2),
         user_id
       });
+      
+      console.log('🔍 Items a enviar a MercadoPago:', JSON.stringify(mpItems, null, 2));
+      console.log('🔍 PreferenceData completo:', JSON.stringify(preferenceData, null, 2));
 
       const preference = await this.preference.create(preferenceData);
 
