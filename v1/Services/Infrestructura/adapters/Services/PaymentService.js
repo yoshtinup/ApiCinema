@@ -46,17 +46,24 @@ export class PaymentService {
           throw new Error(`Cantidad inválida para el producto: ${item.nombre || item.name}`);
         }
 
-        return {
+        const mpItem = {
           id: String(item.idproducto || item.product_id || item.id),
           title: item.nombre || item.name || 'Producto',
-          description: item.descripcion || item.description || '',
           quantity: quantity,
           unit_price: unitPrice,
-          currency_id: 'MXN',
-          // Información adicional del producto
-          picture_url: item.imagen || item.image || null,
-          category_id: item.categoria || item.category || 'general'
+          currency_id: 'MXN'
         };
+
+        // Solo agregar campos opcionales si tienen valor
+        if (item.descripcion || item.description) {
+          mpItem.description = item.descripcion || item.description;
+        }
+        
+        if (item.imagen || item.image) {
+          mpItem.picture_url = item.imagen || item.image;
+        }
+
+        return mpItem;
       });
 
       // Calcular totales
@@ -67,37 +74,20 @@ export class PaymentService {
       // Crear preferencia
       const preferenceData = {
         items: mpItems,
-        payer: {
-          name: 'Cliente',
-          email: `user${user_id}@example.com` // En producción, usar email real
-        },
         back_urls: {
           success: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`,
           failure: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`,
           pending: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`
         },
         auto_return: 'approved',
-        // Metadata para identificar la orden
         external_reference: `USER_${user_id}_${Date.now()}`,
-        metadata: {
-          user_id: user_id,
-          nfc: nfc || null,
-          items_count: items.length,
-          subtotal: subtotal.toFixed(2)
-        },
-        notification_url: `${process.env.BACKEND_URL}/api/v1/webhooks/mercadopago`,
-        statement_descriptor: 'TU_NEGOCIO', // Cambiar por el nombre de tu negocio
-        payment_methods: {
-          excluded_payment_types: [],
-          installments: 1 // Configurar cuotas permitidas
-        }
+        statement_descriptor: 'CINESNACKS'
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
-        items: mpItems.length,
-        total: subtotal,
-        user_id,
-        preferenceData: JSON.stringify(preferenceData, null, 2)
+        items_count: mpItems.length,
+        total: subtotal.toFixed(2),
+        user_id
       });
 
       const preference = await this.preference.create(preferenceData);
