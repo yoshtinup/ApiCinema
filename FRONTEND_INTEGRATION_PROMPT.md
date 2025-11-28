@@ -12,7 +12,7 @@ Headers: {
   'Authorization': 'Bearer ' + userToken,
   'Content-Type': 'application/json' 
 }
-Body: { userId: number }
+Body: { user_id: number }
 Response: { preferenceId: string, init_point: string }
 ```
 
@@ -24,10 +24,10 @@ Headers: {
   'Content-Type': 'application/json' 
 }
 Body: { 
-  userId: number, 
-  paymentId: string, 
+  user_id: number, 
+  payment_id: string, 
   status: string, 
-  merchantOrderId: string 
+  merchant_order_id: string 
 }
 Response: { success: boolean, orderId: string }
 ```
@@ -48,14 +48,14 @@ const handlePayment = async () => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ userId })
+      body: JSON.stringify({ user_id: userId })
     });
 
     const data = await response.json();
     
-    if (data.preferenceId) {
+    if (data.success && data.data) {
       // Redirigir a MercadoPago
-      window.location.href = data.init_point;
+      window.location.href = data.data.init_point;
     }
   } catch (error) {
     console.error('Error:', error);
@@ -89,10 +89,10 @@ const completePayment = async (paymentId, status, merchantOrderId) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        userId, 
-        paymentId, 
-        status, 
-        merchantOrderId 
+        user_id: userId, 
+        payment_id: paymentId, 
+        status: status, 
+        merchant_order_id: merchantOrderId 
       })
     });
 
@@ -124,8 +124,8 @@ El backend ya está configurado para redirigir a:
 
 ## 🚀 PASOS DE IMPLEMENTACIÓN
 
-1. **Actualizar BodyPago.jsx** con el nuevo endpoint `/payment/create-preference`
-2. **Actualizar PaymentSuccess.jsx** con el endpoint `/payment/complete`  
+1. **Actualizar BodyPago.jsx** con el nuevo endpoint `api/v1/payment/create-preference`
+2. **Actualizar PaymentSuccess.jsx** con el endpoint `api/v1/payment/complete`  
 3. **Verificar apiConfig.js** apunte al servidor correcto
 4. **Probar flujo completo**: Agregar productos → Carrito → Pagar → Confirmar
 
@@ -192,6 +192,35 @@ Todos los endpoints requieren:
 ### URLs Base
 - **Producción**: `https://cinesnacksapi.chuy7x.space:3002`
 - **Desarrollo**: `http://localhost:3002`
+
+---
+
+## 🚨 CORRECCIÓN CRÍTICA DETECTADA
+
+**PROBLEMA IDENTIFICADO**: El frontend está enviando `user_id` correctamente, pero hay un problema en la respuesta. El backend devuelve:
+```json
+{
+  "success": true,
+  "data": {
+    "preferenceId": "...",
+    "init_point": "..."
+  }
+}
+```
+
+**CORRECCIÓN EN EL FRONTEND**: Cambiar de `data.preferenceId` a `data.data.init_point`:
+
+```javascript
+// ❌ INCORRECTO
+if (data.preferenceId) {
+  window.location.href = data.init_point;
+}
+
+// ✅ CORRECTO  
+if (data.success && data.data) {
+  window.location.href = data.data.init_point;
+}
+```
 
 ---
 
