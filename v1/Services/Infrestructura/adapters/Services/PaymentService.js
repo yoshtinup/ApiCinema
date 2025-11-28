@@ -2,8 +2,14 @@ import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 export class PaymentService {
   constructor() {
+    const accessToken = process.env.NODE_ENV === 'production' 
+      ? process.env.MP_ACCESS_TOKEN_PROD 
+      : process.env.MP_ACCESS_TOKEN;
+      
+    console.log('🔑 Inicializando PaymentService con token:', accessToken ? 'Token presente' : 'Token faltante');
+    
     this.client = new MercadoPagoConfig({
-      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+      accessToken: accessToken,
       options: { timeout: 5000 }
     });
     this.preference = new Preference(this.client);
@@ -66,9 +72,9 @@ export class PaymentService {
           email: `user${user_id}@example.com` // En producción, usar email real
         },
         back_urls: {
-          success: `${process.env.FRONTEND_URL}/payment/success`,
-          failure: `${process.env.FRONTEND_URL}/payment/failure`,
-          pending: `${process.env.FRONTEND_URL}/payment/pending`
+          success: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`,
+          failure: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`,
+          pending: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`
         },
         auto_return: 'approved',
         // Metadata para identificar la orden
@@ -90,7 +96,8 @@ export class PaymentService {
       console.log('📝 Creando preferencia de MercadoPago:', {
         items: mpItems.length,
         total: subtotal,
-        user_id
+        user_id,
+        preferenceData: JSON.stringify(preferenceData, null, 2)
       });
 
       const preference = await this.preference.create(preferenceData);
