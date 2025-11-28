@@ -83,13 +83,36 @@ export class PaymentService {
       console.log('🔍 Items a enviar a MercadoPago:', JSON.stringify(mpItems, null, 2));
       console.log('🔍 PreferenceData completo:', JSON.stringify(preferenceData, null, 2));
 
-      const preference = await this.preference.create(preferenceData);
+      // Intentar llamada directa a la API REST de MercadoPago
+      console.log('🔧 Intentando llamada HTTP directa a MercadoPago API...');
+      const accessToken = process.env.NODE_ENV === 'production' 
+        ? process.env.MP_ACCESS_TOKEN_PROD 
+        : process.env.MP_ACCESS_TOKEN;
+      
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': `${user_id}-${Date.now()}`
+        },
+        body: JSON.stringify(preferenceData)
+      });
 
-      console.log('✅ Preferencia creada:', preference.id);
+      const responseText = await response.text();
+      console.log('📡 Status HTTP:', response.status);
+      console.log('📡 Response body:', responseText);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
+      }
+
+      const preference = JSON.parse(responseText);
+      console.log('✅ Preferencia creada (API directa):', preference.id);
 
       return {
         preference_id: preference.id,
-        init_point: preference.init_point, // URL para abrir checkout
+        init_point: preference.init_point,
         sandbox_init_point: preference.sandbox_init_point,
         items: mpItems,
         total: subtotal
