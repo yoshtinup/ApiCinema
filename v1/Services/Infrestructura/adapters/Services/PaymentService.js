@@ -47,16 +47,17 @@ export class PaymentService {
         }
 
         const mpItem = {
-          id: String(item.idproducto || item.product_id || item.id),
-          title: item.nombre || item.name || 'Producto',
-          quantity: quantity,
-          unit_price: Number(unitPrice.toFixed(2)),
+          id: `prod_${item.idproducto || item.product_id || item.id}_${user_id}`,
+          title: (item.nombre || item.name || 'Producto').substring(0, 50),
+          quantity: parseInt(quantity),
+          unit_price: parseFloat(parseFloat(unitPrice).toFixed(2)),
           currency_id: 'MXN'
         };
 
         // Solo agregar campos opcionales si tienen valor
         if (item.descripcion || item.description) {
-          mpItem.description = item.descripcion || item.description;
+          const desc = item.descripcion || item.description;
+          mpItem.description = desc.substring(0, 100);
         }
         
         // Remover picture_url temporalmente para debugging
