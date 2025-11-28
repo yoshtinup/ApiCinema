@@ -48,16 +48,22 @@ export class PaymentService {
 
         const mpItem = {
           id: `prod_${item.idproducto || item.product_id || item.id}_${user_id}`,
-          title: (item.nombre || item.name || 'Producto').substring(0, 50),
+          title: (item.nombre || item.name || 'Producto')
+            .replace(/[^\w\s\-]/gi, '') // Remover caracteres especiales
+            .substring(0, 50),
           quantity: parseInt(quantity),
-          unit_price: parseFloat(parseFloat(unitPrice).toFixed(2)),
+          unit_price: parseFloat(unitPrice.toFixed(2)), // Asegurar número con decimales
           currency_id: 'MXN'
         };
 
         // Solo agregar campos opcionales si tienen valor
         if (item.descripcion || item.description) {
-          const desc = item.descripcion || item.description;
-          mpItem.description = desc.substring(0, 100);
+          const desc = (item.descripcion || item.description)
+            .replace(/[^\w\s\-.,]/gi, '') // Remover caracteres especiales
+            .substring(0, 100);
+          if (desc.length > 0) {
+            mpItem.description = desc;
+          }
         }
         
         // Remover picture_url temporalmente para debugging
