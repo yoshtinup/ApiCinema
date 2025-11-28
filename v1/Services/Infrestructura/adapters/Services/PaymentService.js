@@ -47,30 +47,27 @@ export class PaymentService {
         }
 
         const mpItem = {
-          id: `prod_${item.idproducto || item.product_id || item.id}_${user_id}`,
-          title: (item.nombre || item.name || 'Producto')
-            .replace(/[^\w\s\-]/gi, '') // Remover caracteres especiales
-            .substring(0, 50),
-          quantity: parseInt(quantity),
-          unit_price: parseFloat(unitPrice.toFixed(2)), // Asegurar número con decimales
+          id: String(`prod_${item.idproducto || item.product_id || item.id}_${user_id}`),
+          title: String((item.nombre || item.name || 'Producto')
+            .replace(/[^\w\s\-]/gi, '')
+            .substring(0, 50)),
+          quantity: Number(quantity),
+          unit_price: Number(unitPrice.toFixed(2)),
           currency_id: 'MXN'
         };
 
-        // Solo agregar campos opcionales si tienen valor
-        if (item.descripcion || item.description) {
-          const desc = (item.descripcion || item.description)
-            .replace(/[^\w\s\-.,]/gi, '') // Remover caracteres especiales
-            .substring(0, 100);
-          if (desc.length > 0) {
-            mpItem.description = desc;
+        // Agregar descripción solo si existe y no está vacía
+        const description = (item.descripcion || item.description || '').trim();
+        if (description.length > 0) {
+          const sanitizedDesc = description
+            .replace(/[^\w\s\-.,]/gi, '')
+            .substring(0, 100)
+            .trim();
+          if (sanitizedDesc.length > 0) {
+            mpItem.description = String(sanitizedDesc);
           }
         }
         
-        // Remover picture_url temporalmente para debugging
-        // if (item.imagen || item.image) {
-        //   mpItem.picture_url = item.imagen || item.image;
-        // }
-
         return mpItem;
       });
 
@@ -83,17 +80,15 @@ export class PaymentService {
       const preferenceData = {
         items: mpItems,
         payer: {
-          email: `user${user_id}@cinesnacks.com`
+          email: String(`user${user_id}@cinesnacks.com`)
         },
         back_urls: {
-          success: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`,
-          failure: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`,
-          pending: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`
+          success: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-success`),
+          failure: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-failure`),
+          pending: String(`${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`)
         },
         auto_return: 'approved',
-        external_reference: `USER_${user_id}_${Date.now()}`
-        // Remover statement_descriptor temporalmente para debugging
-        // statement_descriptor: 'CINESNACKS'
+        external_reference: String(`USER_${user_id}_${Date.now()}`)
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
