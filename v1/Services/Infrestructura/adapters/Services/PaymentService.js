@@ -50,7 +50,7 @@ export class PaymentService {
           id: String(item.idproducto || item.product_id || item.id),
           title: item.nombre || item.name || 'Producto',
           quantity: quantity,
-          unit_price: unitPrice,
+          unit_price: Number(unitPrice.toFixed(2)),
           currency_id: 'MXN'
         };
 
