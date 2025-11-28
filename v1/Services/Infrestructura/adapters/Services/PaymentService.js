@@ -59,9 +59,10 @@ export class PaymentService {
           mpItem.description = item.descripcion || item.description;
         }
         
-        if (item.imagen || item.image) {
-          mpItem.picture_url = item.imagen || item.image;
-        }
+        // Remover picture_url temporalmente para debugging
+        // if (item.imagen || item.image) {
+        //   mpItem.picture_url = item.imagen || item.image;
+        // }
 
         return mpItem;
       });
@@ -83,8 +84,9 @@ export class PaymentService {
           pending: `${process.env.FRONTEND_URL || 'https://cinesnacks.chuy7x.space'}/payment-pending`
         },
         auto_return: 'approved',
-        external_reference: `USER_${user_id}_${Date.now()}`,
-        statement_descriptor: 'CINESNACKS'
+        external_reference: `USER_${user_id}_${Date.now()}`
+        // Remover statement_descriptor temporalmente para debugging
+        // statement_descriptor: 'CINESNACKS'
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
