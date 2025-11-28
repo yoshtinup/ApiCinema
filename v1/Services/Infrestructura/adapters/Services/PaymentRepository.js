@@ -52,7 +52,29 @@ export class PaymentRepository extends IExteriorService {
       throw new Error(`Error validando pago: ${error.message}`);
     }
   }
+  async findOrderByPaymentId(paymentId) {
+  const sql = "SELECT * FROM orders WHERE payment_id = ? LIMIT 1";
+  try {
+    const [result] = await db.query(sql, [paymentId]);
+    
+    if (result.length === 0) {
+      return null;
+    }
 
+    const order = result[0];
+    try {
+      order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    } catch (parseError) {
+      console.error('Error parsing items:', parseError);
+      order.items = [];
+    }
+
+    return order;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Error finding order by payment_id');
+  }
+}
   async createPayment(item, orderId = null, payerInfo = null) {
     try {
       const preference = new Preference(this.mpClient);

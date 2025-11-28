@@ -55,10 +55,12 @@ export class PagoRepository extends IPagoRepository {
 
 async createOrder(order) {
   // Format the date to MySQL compatible format (YYYY-MM-DD HH:MM:SS)
-  const formattedDate = new Date(order.created_at)
-    .toISOString()
-    .slice(0, 19)
-    .replace('T', ' ');
+  const formattedDate = order.created_at 
+    ? new Date(order.created_at).toISOString().slice(0, 19).replace('T', ' ')
+    : new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  // Generate order_id if not provided
+  const orderId = order.order_id || `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Calculate the correct total from items
   let subtotal = 0;
@@ -81,39 +83,50 @@ async createOrder(order) {
     }
   }
 
-  // Calculate IVA (16% in Mexico)
+  // Use the provided total or calculate with IVA
+  const finalTotal = order.total || subtotal;
   const iva = subtotal * 0.16;
-  const totalWithIva = subtotal + iva;
 
-  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id, nfc) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id, nfc, payment_id, payment_status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   const params = [
-    order.order_id,
+    orderId,
     order.user_id,
     JSON.stringify(order.items),
-    totalWithIva.toFixed(2),
-    order.status,
+    finalTotal.toFixed(2),
+    order.status || 'pending',
     formattedDate,
-    order.dispenser_id,
-    order.nfc ?? null
+    order.dispenser_id || null,
+    order.nfc || null,
+    order.payment_id || null,
+    order.payment_status || null,
+    order.payment_method || null
   ];
 
   try {
     const result = await db.query(sql, params);
-    // Descontar la cantidad de cada producto comprado
-    for (const item of order.items) {
-      const productId = item.product_id || item.id;
-      const cantidad = item.quantity || item.cantidad;
-      const updateSql = "UPDATE productos SET cantidad = cantidad - ? WHERE id = ?";
-      await db.query(updateSql, [cantidad, productId]);
+    
+    // Descontar la cantidad de cada producto comprado solo si el estado es 'paid'
+    if (order.status === 'paid' && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const productId = item.product_id || item.id;
+        const cantidad = item.quantity || item.cantidad;
+        if (productId && cantidad) {
+          const updateSql = "UPDATE productos SET cantidad = cantidad - ? WHERE id = ?";
+          await db.query(updateSql, [cantidad, productId]);
+        }
+      }
     }
+    
     const resultado = Array.isArray(result) ? result[0] : result;
     if (!resultado) {
       throw new Error('Failed to insert order into database');
     }
+    
     return {
       id: resultado.insertId || 0,
+      order_id: orderId,
       ...order,
-      total: totalWithIva.toFixed(2),
+      total: finalTotal.toFixed(2),
       subtotal: subtotal.toFixed(2),
       iva: iva.toFixed(2),
       created_at: formattedDate
@@ -893,6 +906,35 @@ async createOrder(order) {
     } catch (error) {
       console.error('Database Error getting product quantities per order:', error);
       throw new Error('Error retrieving product quantities per order');
+    }
+  }
+
+  /**
+   * Busca una orden por payment_id para evitar duplicados
+   * @param {string} paymentId - ID del pago en MercadoPago
+   * @returns {Promise<Object|null>} Orden encontrada o null
+   */
+  async findOrderByPaymentId(paymentId) {
+    const sql = "SELECT * FROM orders WHERE payment_id = ? LIMIT 1";
+    try {
+      const [result] = await db.query(sql, [paymentId]);
+      
+      if (result.length === 0) {
+        return null;
+      }
+
+      const order = result[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items:', parseError);
+        order.items = [];
+      }
+
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error finding order by payment_id');
     }
   }
 }
