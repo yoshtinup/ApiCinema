@@ -113,9 +113,9 @@ export class PaymentRepository extends IExteriorService {
           payer: payer,
           
           back_urls: {
-            success: "https://cinesnacks.acstree.xyz/payment-success", 
-            failure: "https://cinesnacks.acstree.xyz/carrito",
-            pending: "https://cinesnacks.acstree.xyz/payment-pending"
+            success: "https://cinesnacks.chuy7x.space/payment-success", 
+            failure: "https://cinesnacks.chuy7x.space/payment-failure",
+            pending: "https://cinesnacks.chuy7x.space/payment-pending"
           },
           auto_return: "approved",
           
@@ -127,7 +127,7 @@ export class PaymentRepository extends IExteriorService {
             ],
             installments: 12 // Máximo de cuotas permitidas
           },
-          notification_url: "https://apiempresacinesnack.acstree.xyz/api/v1/payments/webhook",
+          notification_url: "https://cinesnackapi.chuy7x.space/api/v1/payments/webhook",
           
           // Configuraciones adicionales para debugging
           metadata: {

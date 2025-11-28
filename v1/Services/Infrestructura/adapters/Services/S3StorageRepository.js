@@ -25,7 +25,7 @@ export class S3StorageRepository extends IStorageService {
     }
 
     this.s3Client = new S3Client(config);
-    this.bucketName = process.env.AWS_S3_BUCKET_NAME || 'cinesnacks-images';
+    this.bucketName = process.env.AWS_S3_BUCKET_NAME || 'cinesnacks-imagess';
     
     console.log('✅ S3StorageRepository inicializado:', {
       region: config.region,

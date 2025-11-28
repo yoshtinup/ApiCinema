@@ -10,7 +10,7 @@ const config = {
     database: process.env.DB_DATABASE,
     password: process.env.DB_PASSWORD,
     waitForConnections: true,
-    connectionLimit: 5,
+    connectionLimit: 10,
     queueLimit: 0
   };
 
