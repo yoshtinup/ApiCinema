@@ -26,6 +26,7 @@ import { AnalyticsRouter as StatisticalAnalyticsRouter } from "./v1/StatisticalA
 import { StatisticalAnalyticsModule } from "./v1/StatisticalAnalytics/index.js";
 import { CorreoRouter } from "./v1/Services/Infrestructura/interfaces/http/router/CorreoRouter.js";
 import StorageRouter from "./v1/Services/Infrestructura/interfaces/http/router/StorageRouter.js";
+import { webhookRouter } from "./v1/Services/Infrestructura/interfaces/http/PaymentWebhook.js";
 import { db } from "./database/mysql.js";
 // import { swaggerUi, specs } from './swagger.js';
 
@@ -84,6 +85,9 @@ app.use("/api/v1", DispenserRouter);
 app.use("/api/v1/analytics", AnalyticsRouter);
 app.use("/api/v1/reports", ReportsRouter);
 app.use("/api/v1/gaussian", GaussianAnalyticsRouter);
+
+// ⚡ WEBHOOK DE MERCADOPAGO - CRÍTICO PARA PAGOS
+app.use("/webhooks/mercadopago", webhookRouter);
 
 // Statistics routes will be added after initialization
 
