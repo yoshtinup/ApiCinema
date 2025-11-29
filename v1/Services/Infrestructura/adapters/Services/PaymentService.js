@@ -90,7 +90,7 @@ export class PaymentService {
         },
         auto_return: 'approved',
         external_reference: `USER_${user_id}_${Date.now()}`,
-        notification_url: 'https://cinesnacksapi.chuy7x.space:3002/webhooks/mercadopago'
+        notification_url: 'https://cinesnacksapi.chuy7x.space/webhooks/mercadopago'
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
