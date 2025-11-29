@@ -113,6 +113,56 @@ export class PaymentController {
   }
 
   /**
+   * Verifica el estado de un pago por external_reference
+   * GET /api/v1/payment/status?external_reference=XXX
+   */
+  async checkPaymentStatus(req, res) {
+    try {
+      const { external_reference, user_id } = req.query;
+
+      if (!external_reference || !user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'external_reference y user_id son requeridos'
+        });
+      }
+
+      console.log(`🔍 Verificando estado del pago: ${external_reference}`);
+
+      // Buscar orden por external_reference
+      const order = await this.pagoRepository.findOrderByExternalReference(external_reference);
+
+      if (!order) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            status: 'pending',
+            message: 'Pago en proceso, por favor espera unos segundos',
+            order: null
+          }
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          status: order.payment_status || order.status,
+          message: order.payment_status === 'approved' ? 'Pago completado' : 'Pago en proceso',
+          order: order
+        }
+      });
+
+    } catch (error) {
+      console.error('Error verificando estado del pago:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al verificar estado del pago',
+        details: error.message
+      });
+    }
+  }
+
+  /**
    * Webhook para notificaciones de MercadoPago
    * POST /api/v1/webhooks/mercadopago
    */

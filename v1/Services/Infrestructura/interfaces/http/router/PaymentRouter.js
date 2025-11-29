@@ -33,6 +33,11 @@ PaymentRouter.post('/payment/complete', authMiddleware,
   (req, res) => paymentController.completePayment(req, res)
 );
 
+// 3. Verificar estado de pago por external_reference
+PaymentRouter.get('/payment/status', authMiddleware,
+  (req, res) => paymentController.checkPaymentStatus(req, res)
+);
+
 // ========================================
 // WEBHOOK - Notificaciones de MercadoPago
 // ========================================
@@ -43,4 +48,5 @@ PaymentRouter.use('/', PaymentWebhook);
 console.log('💳 Rutas de pago configuradas:');
 console.log('   POST /payment/create-preference (requiere auth)');
 console.log('   POST /payment/complete (requiere auth)');
+console.log('   GET  /payment/status?external_reference=XXX (requiere auth)');
 console.log('   POST /webhooks/mercadopago (webhook)');

@@ -111,6 +111,7 @@ export class CompletePayment {
         payment_id: payment_id,
         payment_status: 'approved',
         payment_method: paymentInfo.payment_method_id || 'mercadopago',
+        external_reference: paymentInfo.external_reference || null,
         nfc: nfc || null
       };
 

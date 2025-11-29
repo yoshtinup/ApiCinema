@@ -937,4 +937,33 @@ async createOrder(order) {
       throw new Error('Error finding order by payment_id');
     }
   }
+
+  /**
+   * Buscar orden por external_reference de MercadoPago
+   * @param {string} externalReference - External reference de la preferencia
+   * @returns {Promise<Object|null>} Orden encontrada o null
+   */
+  async findOrderByExternalReference(externalReference) {
+    const sql = "SELECT * FROM orders WHERE external_reference = ? LIMIT 1";
+    try {
+      const [result] = await db.query(sql, [externalReference]);
+      
+      if (result.length === 0) {
+        return null;
+      }
+
+      const order = result[0];
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items:', parseError);
+        order.items = [];
+      }
+
+      return order;
+    } catch (error) {
+      console.error('Database Error:', error);
+      throw new Error('Error finding order by external_reference');
+    }
+  }
 }

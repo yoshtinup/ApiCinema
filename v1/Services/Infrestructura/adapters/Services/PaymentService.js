@@ -77,6 +77,9 @@ export class PaymentService {
         sum + (item.unit_price * item.quantity), 0
       );
 
+      // Crear referencia externa única
+      const externalRef = `USER_${user_id}_${Date.now()}`;
+      
       // Crear preferencia con external_reference para identificar al usuario
       const preferenceData = {
         items: mpItems,
@@ -84,13 +87,13 @@ export class PaymentService {
           email: `user${user_id}@cinesnacks.com`
         },
         back_urls: {
-          success: `https://cinesnacks.chuy7x.space/payment-success?user_id=${user_id}`,
-          failure: `https://cinesnacks.chuy7x.space/payment-failure?user_id=${user_id}`,
-          pending: `https://cinesnacks.chuy7x.space/payment-pending?user_id=${user_id}`
+          success: `https://cinesnacks.chuy7x.space/payment-success?user_id=${user_id}&external_reference=${externalRef}`,
+          failure: `https://cinesnacks.chuy7x.space/payment-failure?user_id=${user_id}&external_reference=${externalRef}`,
+          pending: `https://cinesnacks.chuy7x.space/payment-pending?user_id=${user_id}&external_reference=${externalRef}`
         },
         auto_return: 'approved',
-        external_reference: `USER_${user_id}_${Date.now()}`,
-        notification_url: 'https://cinesnacksapi.chuy7x.space/webhooks/mercadopago'
+        external_reference: externalRef,
+        notification_url: `https://cinesnacksapi.chuy7x.space:3002/webhooks/mercadopago?source=notification`
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
