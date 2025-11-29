@@ -4,6 +4,8 @@ import { CompletePayment } from '../../../Aplicativo/CompletePayment.js';
 export class PaymentController {
   constructor(paymentService, pagoRepository, carritoRepository) {
     this.paymentService = paymentService;
+    this.pagoRepository = pagoRepository; // ✅ AGREGAR ESTA LÍNEA
+    this.carritoRepository = carritoRepository; // ✅ AGREGAR ESTA LÍNEA
     this.createPreferenceUseCase = new CreatePaymentPreference(
       paymentService, 
       carritoRepository
