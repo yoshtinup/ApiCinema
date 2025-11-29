@@ -87,7 +87,7 @@ async createOrder(order) {
   const finalTotal = order.total || subtotal;
   const iva = subtotal * 0.16;
 
-  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id, nfc, payment_id, payment_status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  const sql = "INSERT INTO orders (order_id, user_id, items, total, status, created_at, dispenser_id, nfc, payment_id, payment_status, payment_method, external_reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   const params = [
     orderId,
     order.user_id,
@@ -99,7 +99,8 @@ async createOrder(order) {
     order.nfc || null,
     order.payment_id || null,
     order.payment_status || null,
-    order.payment_method || null
+    order.payment_method || null,
+    order.external_reference || null
   ];
 
   try {
@@ -944,25 +945,51 @@ async createOrder(order) {
    * @returns {Promise<Object|null>} Orden encontrada o null
    */
   async findOrderByExternalReference(externalReference) {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 [REPOSITORY] Buscando orden por external_reference');
+    console.log('📋 external_reference:', externalReference);
+    
     const sql = "SELECT * FROM orders WHERE external_reference = ? LIMIT 1";
+    console.log('📝 SQL Query:', sql);
+    console.log('📊 Ejecutando consulta en BD...');
+    
     try {
       const [result] = await db.query(sql, [externalReference]);
       
+      console.log('📊 Resultados obtenidos:', result.length, 'filas');
+      
       if (result.length === 0) {
+        console.log('⚠️ No se encontró ninguna orden con ese external_reference');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         return null;
       }
 
       const order = result[0];
+      console.log('✅ Orden encontrada:', {
+        order_id: order.order_id,
+        user_id: order.user_id,
+        external_reference: order.external_reference,
+        payment_status: order.payment_status,
+        status: order.status,
+        total: order.total,
+        created_at: order.created_at
+      });
+      
       try {
         order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        console.log('✅ Items parseados correctamente:', order.items.length, 'productos');
       } catch (parseError) {
-        console.error('Error parsing items:', parseError);
+        console.error('❌ Error parsing items:', parseError);
         order.items = [];
       }
 
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return order;
     } catch (error) {
-      console.error('Database Error:', error);
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('❌ [REPOSITORY] Database Error:', error);
+      console.error('Stack trace:', error.stack);
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       throw new Error('Error finding order by external_reference');
     }
   }
