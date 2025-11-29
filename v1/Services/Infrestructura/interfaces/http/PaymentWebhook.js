@@ -13,7 +13,7 @@ const client = new MercadoPagoConfig({
 const payment = new Payment(client);
 
 // Middleware para procesar webhooks de MercadoPago
-webhookRouter.post('/webhook', async (req, res) => {
+webhookRouter.post('/', async (req, res) => {
   try {
     console.log('🔔 Webhook recibido de MercadoPago:', req.body);
     
