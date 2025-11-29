@@ -1,5 +1,26 @@
 # 🎉 Integración de Payment Success con POLLING (VERSIÓN MEJORADA)
 
+## ⚠️ CAMBIO IMPORTANTE EN EL FLUJO
+
+**ANTES (Flujo viejo - NO USAR):**
+```
+1. Usuario hace clic en "Pagar"
+2. Frontend llama POST /payment/create-preference
+3. Frontend LLAMA POST /payment/complete ❌ ESTO YA NO SE USA
+4. Frontend abre MercadoPago
+```
+
+**AHORA (Flujo nuevo - CORRECTO):**
+```
+1. Usuario hace clic en "Pagar"
+2. Frontend llama POST /payment/create-preference
+3. Frontend abre MercadoPago (NO llama a /complete)
+4. Usuario completa pago
+5. MercadoPago redirige a /payment-success?external_reference=XXX
+6. Frontend hace POLLING a GET /payment/status cada 2 segundos
+7. Cuando encuentra la orden, muestra éxito
+```
+
 ## 🔧 Cambios Realizados en Backend
 
 ### ✅ Nuevos Endpoints
