@@ -46,8 +46,9 @@ export class PaymentService {
           throw new Error(`Cantidad inválida para el producto: ${item.nombre || item.name}`);
         }
 
-        // SOLO campos REQUERIDOS - sin description ni id temporalmente
-        return {
+        // CAMPOS REQUERIDOS + OPCIONALES que SÍ acepta MercadoPago
+        const mpItem = {
+          id: String(`prod_${item.idproducto || item.product_id || item.id}_${user_id}`),
           title: String((item.nombre || item.name || 'Producto')
             .replace(/[^\w\s]/gi, ' ')
             .trim()
@@ -56,6 +57,19 @@ export class PaymentService {
           unit_price: Number(unitPrice),
           currency_id: 'MXN'
         };
+
+        // Agregar descripción si existe
+        if (item.descripcion || item.description) {
+          const desc = String(item.descripcion || item.description)
+            .replace(/[^\w\s]/gi, ' ')
+            .trim()
+            .substring(0, 100);
+          if (desc.length > 0) {
+            mpItem.description = desc;
+          }
+        }
+
+        return mpItem;
       });
 
       // Calcular totales
@@ -63,15 +77,20 @@ export class PaymentService {
         sum + (item.unit_price * item.quantity), 0
       );
 
-      // Crear preferencia - ESTRUCTURA MINIMALISTA
+      // Crear preferencia con external_reference para identificar al usuario
       const preferenceData = {
         items: mpItems,
-        back_urls: {
-          success: 'https://cinesnacks.chuy7x.space/payment-success',
-          failure: 'https://cinesnacks.chuy7x.space/payment-failure',
-          pending: 'https://cinesnacks.chuy7x.space/payment-pending'
+        payer: {
+          email: `user${user_id}@cinesnacks.com`
         },
-        auto_return: 'approved'
+        back_urls: {
+          success: `https://cinesnacks.chuy7x.space/payment-success?user_id=${user_id}`,
+          failure: `https://cinesnacks.chuy7x.space/payment-failure?user_id=${user_id}`,
+          pending: `https://cinesnacks.chuy7x.space/payment-pending?user_id=${user_id}`
+        },
+        auto_return: 'approved',
+        external_reference: `USER_${user_id}_${Date.now()}`,
+        notification_url: 'https://cinesnacksapi.chuy7x.space:3002/webhooks/mercadopago'
       };
 
       console.log('📝 Creando preferencia de MercadoPago:', {
@@ -114,6 +133,7 @@ export class PaymentService {
         preference_id: preference.id,
         init_point: preference.init_point,
         sandbox_init_point: preference.sandbox_init_point,
+        external_reference: preference.external_reference,
         items: mpItems,
         total: subtotal
       };
