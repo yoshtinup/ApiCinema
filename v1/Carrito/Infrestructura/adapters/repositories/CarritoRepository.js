@@ -64,12 +64,16 @@ export class CarritoRepository extends IProductoRepository {
   }  
   
   async createNewProducto(producto) {
-    // Verificar si el producto ya existe en el carrito del usuario
-    const checkSql = "SELECT id, cantidad FROM carrito WHERE iduser = ? AND idproducto = ?";
-    const checkParams = [producto.iduser, producto.idproducto];
+    // 🔒 CONTROL DE CONCURRENCIA: Usar transacción para evitar duplicados
+    const connection = await db.getConnection();
     
     try {
-      const [existing] = await db.query(checkSql, checkParams);
+      await connection.beginTransaction();
+      
+      // Verificar si el producto ya existe en el carrito del usuario con bloqueo
+      const checkSql = "SELECT id, cantidad FROM carrito WHERE iduser = ? AND idproducto = ? FOR UPDATE";
+      const checkParams = [producto.iduser, producto.idproducto];
+      const [existing] = await connection.query(checkSql, checkParams);
       
       // Si ya existe, incrementar la cantidad
       if (existing.length > 0) {
@@ -82,7 +86,8 @@ export class CarritoRepository extends IProductoRepository {
           existing[0].id
         ];
         
-        await db.query(updateSql, updateParams);
+        await connection.query(updateSql, updateParams);
+        await connection.commit();
         
         return {
           id: existing[0].id,
@@ -105,7 +110,8 @@ export class CarritoRepository extends IProductoRepository {
         producto.hora ?? new Date().toTimeString().split(' ')[0]
       ];
       
-      const [resultado] = await db.query(insertSql, insertParams);
+      const [resultado] = await connection.query(insertSql, insertParams);
+      await connection.commit();
       
       return {
         id: resultado.insertId,
@@ -117,8 +123,11 @@ export class CarritoRepository extends IProductoRepository {
         action: 'created'
       };
     } catch (error) {
+      await connection.rollback();
       console.error('Database Error:', error);
       throw error;
+    } finally {
+      connection.release();
     }
   }
 

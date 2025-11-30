@@ -192,12 +192,26 @@ async function handleApprovedPayment(paymentInfo) {
       await db.query('DELETE FROM carrito WHERE iduser = ?', [userId]);
       console.log('🗑️ Carrito vaciado para user_id:', userId);
       
-      // Descontar stock de productos
+      // 🔒 Descontar stock de productos con control de concurrencia
+      console.log('🔒 Iniciando descuento de stock con control de concurrencia...');
       for (const item of orderItems) {
-        await db.query(
-          'UPDATE productos SET cantidad = cantidad - ? WHERE id = ?',
-          [item.quantity, item.product_id]
-        );
+        try {
+          // Usar UPDATE con condición para evitar sobreventa
+          const [result] = await db.query(
+            'UPDATE productos SET cantidad = cantidad - ? WHERE id = ? AND cantidad >= ?',
+            [item.quantity, item.product_id, item.quantity]
+          );
+          
+          if (result.affectedRows === 0) {
+            console.warn(`⚠️ No se pudo descontar stock del producto ${item.product_id} (stock insuficiente o no existe)`);
+            // Continuar con otros productos, el admin puede revisar esto
+          } else {
+            console.log(`✅ Stock descontado: Producto ${item.product_id}, Cantidad: ${item.quantity}`);
+          }
+        } catch (stockError) {
+          console.error(`❌ Error descontando stock del producto ${item.product_id}:`, stockError);
+          // No lanzar error para no bloquear el resto del proceso
+        }
       }
       console.log('📦 Stock actualizado para', orderItems.length, 'productos');
     }

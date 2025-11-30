@@ -142,6 +142,82 @@ export class ProductoRepository extends IProductoRepository {
     }
   }
 
+  /**
+   * 🔒 CONTROL DE CONCURRENCIA: Descuenta stock de forma atómica
+   * Previene sobreventa verificando stock disponible en la misma transacción
+   * @param {number} productId - ID del producto
+   * @param {number} quantity - Cantidad a descontar
+   * @returns {Promise<boolean>} - true si se descontó exitosamente
+   */
+  async decrementStock(productId, quantity) {
+    const connection = await db.getConnection();
+    
+    try {
+      await connection.beginTransaction();
+      
+      // 🔒 FOR UPDATE bloquea la fila hasta que termine la transacción
+      const [rows] = await connection.query(
+        'SELECT cantidad FROM productos WHERE id = ? FOR UPDATE',
+        [productId]
+      );
+      
+      if (rows.length === 0) {
+        throw new Error(`Producto ${productId} no encontrado`);
+      }
+      
+      const stockActual = rows[0].cantidad;
+      
+      if (stockActual < quantity) {
+        throw new Error(`Stock insuficiente. Disponible: ${stockActual}, Solicitado: ${quantity}`);
+      }
+      
+      // Descontar stock de forma atómica
+      const [result] = await connection.query(
+        'UPDATE productos SET cantidad = cantidad - ? WHERE id = ? AND cantidad >= ?',
+        [quantity, productId, quantity]
+      );
+      
+      if (result.affectedRows === 0) {
+        throw new Error('No se pudo actualizar el stock (condición de carrera detectada)');
+      }
+      
+      await connection.commit();
+      return true;
+      
+    } catch (error) {
+      await connection.rollback();
+      console.error('❌ Error descontando stock:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * 🔒 CONTROL DE CONCURRENCIA: Incrementa stock de forma atómica
+   * Usado para cancelaciones o devoluciones
+   * @param {number} productId - ID del producto
+   * @param {number} quantity - Cantidad a incrementar
+   * @returns {Promise<boolean>} - true si se incrementó exitosamente
+   */
+  async incrementStock(productId, quantity) {
+    const sql = 'UPDATE productos SET cantidad = cantidad + ? WHERE id = ?';
+    const params = [quantity, productId];
+    
+    try {
+      const [result] = await db.query(sql, params);
+      
+      if (result.affectedRows === 0) {
+        throw new Error(`Producto ${productId} no encontrado`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error incrementando stock:', error);
+      throw error;
+    }
+  }
+
 }
 
 
