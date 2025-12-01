@@ -187,8 +187,19 @@ async createOrder(order) {
       if (result.length === 0) return null;
       
       const order = result[0];
-      // Parse the items JSON string back to an array
-      order.items = JSON.parse(order.items);
+      // Parse the items JSON string back to an array if necessary
+      try {
+        if (typeof order.items === 'string' && order.items.trim() !== '') {
+          order.items = JSON.parse(order.items);
+        } else if (order.items === null || order.items === undefined) {
+          order.items = [];
+        } // otherwise assume it's already an object/array
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', order.order_id, parseError);
+        // Fallback: set to empty array to avoid crashing callers
+        order.items = [];
+      }
+
       return order;
     } catch (error) {
       console.error('Database Error:', error);
