@@ -132,11 +132,16 @@ export class PagoController {
     try {
       const { orderId } = req.params;
 
+      console.log('📦 [GET ORDER BY ID] Request for order:', orderId);
+
       if (!orderId) {
         return res.status(400).json({ success: false, error: 'orderId parameter is required' });
       }
 
       const order = await this.pagoRepository.getOrderById(orderId);
+
+      console.log('📦 [GET ORDER BY ID] Order from DB:', order ? 'Found' : 'Not found');
+      console.log('📦 [GET ORDER BY ID] Order details:', JSON.stringify(order, null, 2));
 
       if (!order) {
         return res.status(404).json({ success: false, error: 'Order not found' });
@@ -150,10 +155,29 @@ export class PagoController {
         order.items = [];
       }
 
+      // Format response with the exact structure requested
+      const response = {
+        order_id: order.order_id,
+        user_id: order.user_id ? order.user_id.toString() : null,
+        total: order.total ? parseFloat(order.total).toFixed(2) : "0.00",
+        status: order.status || 'pending',
+        created_at: order.created_at,
+        dispenser_id: order.dispenser_id || null,
+        nfc_token: order.nfc || null,
+        items: Array.isArray(order.items) ? order.items.map(item => ({
+          name: item.name || item.product_name || '',
+          quantity: parseInt(item.quantity || item.cantidad || 0),
+          price: parseFloat(item.price || item.precio || 0).toFixed(2)
+        })) : []
+      };
+
+      console.log('📦 [GET ORDER BY ID] Formatted response:', JSON.stringify(response, null, 2));
+
       // Return order with optional fields like dispenser_id and nfc
-      return res.status(200).json({ success: true, order });
+      return res.status(200).json(response);
     } catch (error) {
-      console.error('Error retrieving order by ID:', error);
+      console.error('❌ [GET ORDER BY ID] Error retrieving order by ID:', error);
+      console.error('❌ Stack trace:', error.stack);
       return res.status(500).json({ success: false, error: error.message });
     }
   }
