@@ -20,6 +20,8 @@ export class PagoController {
     this.selectOrderForDispensingUseCase = new SelectOrderForDispensing(pagoRepository);
     this.getReadyOrderByNFCUseCase = new GetReadyOrderByNFC(pagoRepository);
     this.dispenseOrderByNFCUseCase = new DispenseOrderByNFC(pagoRepository);
+    // Expose repository for direct queries from controller when needed
+    this.pagoRepository = pagoRepository;
   /**
    * Devuelve productos actualizados desde la BD por arreglo de IDs
    * @param {Object} req - La solicitud HTTP.
@@ -119,6 +121,40 @@ export class PagoController {
     } catch (error) {
       console.error('Error retrieving orders:', error);
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Obtener una orden por su ID (order_id)
+   * GET /api/v1/orders/:orderId
+   */
+  async getOrderById(req, res) {
+    try {
+      const { orderId } = req.params;
+
+      if (!orderId) {
+        return res.status(400).json({ success: false, error: 'orderId parameter is required' });
+      }
+
+      const order = await this.pagoRepository.getOrderById(orderId);
+
+      if (!order) {
+        return res.status(404).json({ success: false, error: 'Order not found' });
+      }
+
+      // Ensure items are parsed (getOrderById should already parse, but double-check)
+      try {
+        order.items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (parseError) {
+        console.error('Error parsing items JSON for order:', orderId, parseError);
+        order.items = [];
+      }
+
+      // Return order with optional fields like dispenser_id and nfc
+      return res.status(200).json({ success: true, order });
+    } catch (error) {
+      console.error('Error retrieving order by ID:', error);
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
     async getProductosByIdsController(req, res) {

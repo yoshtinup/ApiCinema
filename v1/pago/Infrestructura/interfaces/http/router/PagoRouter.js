@@ -18,6 +18,8 @@ PagoRouter.get('/pago', (req, res) => pagoController.getAllProducto(req, res));
 PagoRouter.get("/pago/:id", (req, res) => pagoController.getProductoById(req, res));
 PagoRouter.get("/pago/user/:iduser", (req, res) => pagoController.getOrdersByUserId(req, res))
 PagoRouter.get("/pago/nfc/:nfc", (req, res) => pagoController.getOrdersByNFC(req, res))
+// Obtener una orden por su order_id (expuesta como /api/v1/orders/:orderId)
+PagoRouter.get("/orders/:orderId", (req, res) => pagoController.getOrderById(req, res));
 PagoRouter.get("/pago/nfc/:nfc/pending", (req, res) => pagoController.getPendingOrdersByNFC(req, res))
 PagoRouter.post("/pago", (req, res) => pagoController.createPago(req, res));
 PagoRouter.put("/pago/:id", (req, res) => pagoController.updateProductoById(req, res));
