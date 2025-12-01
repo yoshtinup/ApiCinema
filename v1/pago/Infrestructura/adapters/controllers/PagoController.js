@@ -167,7 +167,8 @@ export class PagoController {
         items: Array.isArray(order.items) ? order.items.map(item => ({
           name: item.name || item.product_name || '',
           quantity: parseInt(item.quantity || item.cantidad || 0),
-          price: parseFloat(item.price || item.precio || 0).toFixed(2)
+          price: parseFloat(item.price || item.precio || 0).toFixed(2),
+          no_apartado: item.no_apartado || 0
         })) : []
       };
 

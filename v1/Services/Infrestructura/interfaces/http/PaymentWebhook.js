@@ -140,7 +140,7 @@ async function handleApprovedPayment(paymentInfo) {
       // Obtener items del carrito del usuario
       const [cartItems] = await db.query(`
         SELECT c.id, c.iduser, c.idproducto, c.cantidad, 
-               p.nombre, p.descripcion, p.precio, p.peso, p.categoria, p.imagen
+               p.nombre, p.descripcion, p.precio, p.peso, p.categoria, p.imagen, p.no_apartado
         FROM carrito c 
         INNER JOIN productos p ON c.idproducto = p.id 
         WHERE c.iduser = ?
@@ -159,7 +159,8 @@ async function handleApprovedPayment(paymentInfo) {
         name: item.nombre,
         quantity: item.cantidad,
         price: parseFloat(item.precio),
-        subtotal: parseFloat(item.precio) * parseInt(item.cantidad)
+        subtotal: parseFloat(item.precio) * parseInt(item.cantidad),
+        no_apartado: item.no_apartado || 0
       }));
       
       // Crear la orden
