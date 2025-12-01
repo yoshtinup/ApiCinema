@@ -100,27 +100,37 @@ async function handleApprovedPayment(paymentInfo) {
     console.log('📋 Payment ID:', paymentInfo.id);
     console.log('📋 External Reference:', paymentInfo.external_reference);
     console.log('📋 Amount:', paymentInfo.transaction_amount);
+    console.log('🕐 Timestamp:', new Date().toISOString());
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    // Verificar si ya existe una orden con este external_reference
+    // 🔒 PROTECCIÓN CONTRA DUPLICADOS: Verificar si ya existe una orden
     const [existingOrders] = await db.query(
       'SELECT * FROM orders WHERE external_reference = ? LIMIT 1',
       [paymentInfo.external_reference]
     );
 
     if (existingOrders && existingOrders.length > 0) {
-      // La orden ya existe, solo actualizar el estado
-      console.log('📦 Orden ya existe, actualizando estado...');
+      // La orden ya existe, solo actualizar el estado si es necesario
+      const existingOrder = existingOrders[0];
+      console.log('⚠️ DUPLICADO DETECTADO - Orden ya existe:');
+      console.log('   Order ID:', existingOrder.order_id);
+      console.log('   Status actual:', existingOrder.status);
+      console.log('   Payment ID actual:', existingOrder.payment_id);
+      console.log('   Created at:', existingOrder.created_at);
+      console.log('🛡️ ACCIÓN: Actualizando estado (si es necesario)...');
+      
       await db.query(`
         UPDATE orders 
         SET status = 'paid', 
             payment_id = ?, 
             payment_status = 'approved',
             updated_at = NOW()
-        WHERE external_reference = ?
+        WHERE external_reference = ? AND status != 'paid'
       `, [paymentInfo.id.toString(), paymentInfo.external_reference]);
       
-      console.log('✅ Orden actualizada como pagada:', paymentInfo.external_reference);
+      console.log('✅ Orden actualizada (si era necesario):', paymentInfo.external_reference);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      return; // Salir sin crear orden duplicada
     } else {
       // La orden NO existe, necesitamos crearla
       console.log('⚠️ Orden NO existe, creando nueva orden...');

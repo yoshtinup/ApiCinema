@@ -52,15 +52,22 @@ export class CompletePayment {
       console.log('✅ Pago validado y aprobado');
 
       // 3. VERIFICAR QUE NO EXISTA YA UNA ORDEN CON ESTE PAYMENT_ID
+      console.log('🔍 Verificando si ya existe orden con payment_id:', payment_id);
       const existingOrder = await this.pagoRepository.findOrderByPaymentId(payment_id);
       if (existingOrder) {
-        console.log('⚠️ Ya existe una orden para este pago');
+        console.log('⚠️⚠️⚠️ DUPLICADO DETECTADO - Ya existe una orden para este pago');
+        console.log('   Order ID existente:', existingOrder.order_id);
+        console.log('   Payment ID:', payment_id);
+        console.log('   Timestamp:', new Date().toISOString());
+        console.log('🛡️ BLOQUEANDO creación de orden duplicada');
         return {
           order: existingOrder,
           message: 'Esta orden ya fue procesada anteriormente',
           duplicate: true
         };
       }
+
+      console.log('✅ No hay orden duplicada, continuando...');
 
       // 4. OBTENER ITEMS DEL CARRITO
       console.log('🛒 Obteniendo items del carrito...');
